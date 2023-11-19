@@ -4,8 +4,6 @@ import time
 import requests
 import json
 import platform
-import zipfile
-#from reportlab.pdfgen import canvas
 
 class vuln_report():
     
@@ -23,130 +21,141 @@ class vuln_report():
                 print(data['vulnerabilities'][num]['cve']['id']+" "+data['vulnerabilities'][num]['cve']['metrics']['cvssMetricV2'][0]['baseSeverity'], file=f )
 
 
-    def check_cve(self, service, version):
-        time.sleep(5)
-
-        url_encoded = service+"%20"+version
-        
-        url = f"https://services.nvd.nist.gov/rest/json/cves/2.0?keywordSearch={url_encoded}"
-        response = requests.get(url)
-        print(response)
-        
-        data = json.loads(response.text)
-        
-        return(data)
-
-        #formatted_data = json.dumps(data, indent=2)
-        # Get the list of CVEs from the response
-        #cves = data['vulnerabilities']['cve']
-
-    
-    def ListWinServices():
-        cmd = 'powershell "gps | where {$_.MainWindowTitle } | select Description'
-        proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
-        for line in proc.stdout:
-            if line.rstrip():
-                # only print lines that are not empty
-                # decode() is necessary to get rid of the binary string (b')
-                # rstrip() to remove `\r\n`
-                print(line.decode().rstrip())
-
-
-        
-
-
-    '''
-    In this function we are trying to list all the services and their versions. 
-    Sometimes in linux when we list the versions for each service we get garbage results, so we are checking
-    if in the string that we got there is a number in it. 
-    '''
-    def find_services(self, os):
-
-        # Check the services for the running OS
-        if 'windows' in os:
-            print(f'Running on Windows')
-            ListWinServices()
-
-        elif 'fedora' in os or 'centos' in os:
-            print(f'Running on RedHat based')
-            # Get a list of all running services
-            services = subprocess.run(["systemctl", "list-units", "--type=service", "--state=running"], stdout=subprocess.PIPE).stdout.decode().split("\n")
-
-            # Get the versions of the services
-            service_versions = subprocess.run(["rpm", "-qa"], stdout=subprocess.PIPE).stdout.decode().split("\n")
-            
-        elif 'debian' in os or 'ubuntu' in os:
-            print(f'Running on Debian based')
-            # Get a list of all running services
-            services = subprocess.run(["systemctl", "list-units", "--type=service", "--state=running"], stdout=subprocess.PIPE).stdout.decode().split("\n")            
-        else:
-            print(f'OS {os} is not supported by the tool')
-            exit()
-
-        services_versions = {} # Dict with services as keys and their versions as values
-        service_vulnerabilities = {}
-        for version in service_versions:
-            # if it's not null
-            if version:
-                # if the service version isn't already in the list and if the version is indeed a number
-                if not(version in services_versions.keys()) and self.has_numbers(version.split("-")[1]):
-                    services_versions[version.split("-")[0]] =  version.split("-")[1]
-
-        
-        # Iterate through the list of running services
-        for i in range(4):
-        #for service in services:
-            service = services[i]
-            if service:
-                try:
-                    # Trim the service name
-                    service_name = service.split()[0]
-                    cleaned_service_name = re.findall("\\w+(?=\\.)",service_name)[0]
-                    
-                    print(cleaned_service_name)
-                    # If it's not in the dictionary of discovered services with versions
-                    if cleaned_service_name in services_versions.keys():
-                        service_cves = self.check_cve(cleaned_service_name, services_versions[cleaned_service_name])
-                        service_vulnerabilities[cleaned_service_name] = service_cves
-                        break
-                except:
-                    pass
-        
-        print(service_vulnerabilities)
-        return service_vulnerabilities
-
     def find_os(self):
         os = platform.system().lower()
 
         if os == 'linux':
             with open('/etc/os-release') as f:
                 data = [line.strip() for line in f if line.startswith(('PRETTY_NAME='))]
-                distro_name = [line.split('=')[1].strip('"') for line in data]
-                return distro_name[0].lower()
+                distro_name = [line.split('=')[1].strip('"') for line in data][0].lower()
+                if 'fedora' in distro_name or 'centos' in distro_name:
+                    print(f'Running on RedHat based')
+                    distro = "rh"                
+                elif 'debian' in distro_name or 'ubuntu' in distro_name:
+                    print(f'Running on Debian based')
+                    distro = "debian" 
+                return distro
         elif os == 'windows':
-            return os
+            print(f'Running Windows')
+            return distro
         else:
-            return 'not compatible'
+            print(f'OS {os} is not supported by the tool')
+            exit()
+    
+    def ListWinServices(self):
+        cmd = ['powershell.exe', '-Command', 'Get-Service | Where-Object {$_.Status -eq "Running"} | select name']
+
+        proc = (subprocess.run(cmd, capture_output=True)).stdout.decode().split("\n")
+        services = []
+        for line in proc:
+            stripped_line = line.rstrip()
+            if stripped_line:
+                if stripped_line=="Name" or stripped_line=="----":
+                    continue
+                services.append(stripped_line)
+        return services
 
 
-#asses = vuln_report()
+        
+
+    def find_services(self, distro):
+        # Check the services for the running OS
+        if distro == 'windows':
+            services = self.ListWinServices()
+            return services
+        elif distro == "rh":
+            # Get a list of all running services
+            services = subprocess.run(["systemctl", "list-units", "--type=service", "--state=running"], stdout=subprocess.PIPE).stdout.decode().split("\n")
+            return services
+            
+        elif distro == "debian":
+            # Get a list of all running services
+            services = subprocess.run(["systemctl", "list-units", "--type=service", "--state=running"], stdout=subprocess.PIPE).stdout.decode().split("\n")           
+            return services
+
+
+    def find_versions(self, distro, services):
+        versions = {}
+        if distro == 'windows':
+            versions = self.ListWinServices()
+            return versions
+        
+        elif distro == "rh":
+            for service in services:
+                service_name = self.clean_service_name(service)
+                if service_name:
+                    cmd_out = subprocess.run(["rpm", "-qa", service_name], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                    cmd_out = cmd_out.stdout.decode()
+                else:
+                    continue
+                if cmd_out:
+                    if not(service_name in versions.keys()) and self.has_numbers(cmd_out.split("-")[1]):
+                        versions[service_name] = cmd_out.split("-")[1]   
+            return versions
+            
+        elif distro == "debian":
+            for service in services:
+                service_name = self.clean_service_name(service)
+                if service_name:
+                    cmd_out = subprocess.run(["dpkg", "-l", service_name], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+                    cmd_out = cmd_out.stdout
+                else:
+                    continue
+                if cmd_out:
+                    filtered_out = cmd_out.rstrip().split("\n")[-1]
+                    version = re.sub(' +', ' ', filtered_out).split(" ")
+
+                    if not(service_name in versions.keys()):
+                        versions[service_name] = version[2].split("-")[0]
+            return versions
+
+
+    def clean_service_name(self, service):
+        pattern = r'(\S+)(?=.service)'
+        match = re.search(pattern, service)
+        if match:
+            service_name = match.group(1)
+        else:
+            service_name = ''
+        return service_name
+
+    
+    def get_vulnerabilities(self, versions):
+        time.sleep(5)
+        #print(versions)
+        vulnerabilities = {}
+        i = 2
+        for service in versions:
+            i -= 1
+            url_encoded = service+"%20"+versions[service]
+            url = f"https://services.nvd.nist.gov/rest/json/cves/2.0?keywordSearch={url_encoded}"
+            response = requests.get(url)
+            print(response)
+            data = json.loads(response.text)
+            vulnerabilities[service] = data
+            if i == 0:
+                break
+        
+        return(vulnerabilities)
 
 
 
 
-#vulnerabilities = asses.find_services(asses.find_os())
+asses = vuln_report()
 
 
-'''
-cves = requests.get("https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-2023.json.zip")
-open('cves_2023.zip', 'wb').write(cves.content)
-with zipfile.ZipFile('cves_2023.zip', 'r') as zip_ref:
-    zip_ref.extractall('cves_2023')
+
+distro = asses.find_os()
+services = asses.find_services(distro)
+versions = asses.find_versions(distro, services)
+vulnerabilities = asses.get_vulnerabilities(versions)
+
 
 
 print(f"Data: {vulnerabilities}")
 with open('output.txt', 'w') as f:
     f.write('')
+
 
 with open('output.txt', 'a+') as f:
     for service in vulnerabilities:
@@ -158,5 +167,3 @@ with open('output.txt', 'a+') as f:
         # Print the CVEs
         for num in range(cve['totalResults']):
             print(cve['vulnerabilities'][num]['cve']['id']+" "+cve['vulnerabilities'][num]['cve']['metrics']['cvssMetricV2'][0]['baseSeverity'], file=f )
-        break
-'''
