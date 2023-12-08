@@ -36,13 +36,14 @@ class vuln_report():
                     distro = "debian" 
                 return distro
         elif os == 'windows':
-            print(f'Running Windows')
+            print(f'Running on Windows')
+            distro = "windows" 
             return distro
         else:
             print(f'OS {os} is not supported by the tool')
             exit()
     
-    def ListWinServices(self):
+    def GetWinServices(self):
         cmd = ['powershell.exe', '-Command', 'Get-Service | Where-Object {$_.Status -eq "Running"} | select name']
 
         proc = (subprocess.run(cmd, capture_output=True)).stdout.decode().split("\n")
@@ -55,13 +56,27 @@ class vuln_report():
                 services.append(stripped_line)
         return services
 
+    def GetWinVersions(self, services):
+        services_paths = {} # service_exe:path
+        
+        # Get the paths of every service exe
+        for service in services:
+            cmd = ['powershell.exe', '-Command', f'(Get-cimInstance -ClassName win32_service -Filter \'Name like "{service}"\').PathName']
+            proc = (subprocess.run(cmd, capture_output=True)).stdout.decode().split("\n")
+
+            if not "svchost.exe" in proc[0]:
+                services_paths[service] = proc[0].rstrip()
+        
+        #for exe in services_paths:
+            
+        return services_paths
 
         
 
     def find_services(self, distro):
         # Check the services for the running OS
         if distro == 'windows':
-            services = self.ListWinServices()
+            services = self.GetWinServices()
             return services
         elif distro == "rh":
             # Get a list of all running services
@@ -77,7 +92,7 @@ class vuln_report():
     def find_versions(self, distro, services):
         versions = {}
         if distro == 'windows':
-            versions = self.ListWinServices()
+            versions = self.GetWinVersions(services)
             return versions
         
         elif distro == "rh":
@@ -148,10 +163,11 @@ asses = vuln_report()
 distro = asses.find_os()
 services = asses.find_services(distro)
 versions = asses.find_versions(distro, services)
-vulnerabilities = asses.get_vulnerabilities(versions)
+print(versions)
+#vulnerabilities = asses.get_vulnerabilities(versions)
 
 
-
+'''
 print(f"Data: {vulnerabilities}")
 with open('output.txt', 'w') as f:
     f.write('')
@@ -167,3 +183,4 @@ with open('output.txt', 'a+') as f:
         # Print the CVEs
         for num in range(cve['totalResults']):
             print(cve['vulnerabilities'][num]['cve']['id']+" "+cve['vulnerabilities'][num]['cve']['metrics']['cvssMetricV2'][0]['baseSeverity'], file=f )
+'''
