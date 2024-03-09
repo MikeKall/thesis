@@ -4,11 +4,13 @@ import time
 import requests
 import json
 import platform
+from requests.auth import HTTPBasicAuth
+import csv
 
-class vuln_report():
+class assess_services():
     
     def __init__(self):
-        super(vuln_report, self).__init__()
+        super(assess_services, self).__init__()
 
     def has_numbers(self, inString):
         return any(char.isdigit() for char in inString)
@@ -36,13 +38,14 @@ class vuln_report():
                     distro = "debian" 
                 return distro
         elif os == 'windows':
-            print(f'Running Windows')
+            print(f'Running on Windows')
+            distro = "windows" 
             return distro
         else:
             print(f'OS {os} is not supported by the tool')
             exit()
     
-    def ListWinServices(self):
+    def GetWinServices(self):
         cmd = ['powershell.exe', '-Command', 'Get-Service | Where-Object {$_.Status -eq "Running"} | select name']
 
         proc = (subprocess.run(cmd, capture_output=True)).stdout.decode().split("\n")
@@ -55,13 +58,46 @@ class vuln_report():
                 services.append(stripped_line)
         return services
 
+    def GetWinVersions(self, services):
+        service_version = {} # service_name:version
+        services_paths = {} # service_name:exe path
+        
+        # Get the paths of every service exe
+        for service in services:
+            cmd = ['powershell.exe', '-Command', f'(Get-cimInstance -ClassName win32_service -Filter \'Name like "{service}"\').PathName']
+            proc = (subprocess.run(cmd, capture_output=True)).stdout.decode().split("\n")
+
+            if not "svchost.exe" in proc[0]:
+                services_paths[service] = proc[0].rstrip()
+            else:
+                services_paths[service] = 'Unknown'
+                
+        # Parse the full path of the exe and get the version
+        pattern = "(C:.*?exe)"
+        for service in services_paths:
+            services_paths[service] = services_paths[service].replace('\\','\\\\')
+            match = re.search(pattern, services_paths[service])
+            if match:
+                filtered_service_path = match.group(1)
+            else:
+                filtered_service_path = ''
+            
+
+            if filtered_service_path:
+                cmd = f'wmic datafile where \'name="{filtered_service_path}"\' get version'
+                proc = (subprocess.run(cmd, capture_output=True)).stdout.decode().split("\n")
+                service_version[service] = proc[1].strip()
+            else:
+                service_version[service] = "Unknown"
+
+        return service_version
 
         
 
     def find_services(self, distro):
         # Check the services for the running OS
         if distro == 'windows':
-            services = self.ListWinServices()
+            services = self.GetWinServices()
             return services
         elif distro == "rh":
             # Get a list of all running services
@@ -77,7 +113,7 @@ class vuln_report():
     def find_versions(self, distro, services):
         versions = {}
         if distro == 'windows':
-            versions = self.ListWinServices()
+            versions = self.GetWinVersions(services)
             return versions
         
         elif distro == "rh":
@@ -111,7 +147,7 @@ class vuln_report():
 
 
     def clean_service_name(self, service):
-        pattern = r'(\S+)(?=.service)'
+        pattern = '(\S+)(?=.service)'
         match = re.search(pattern, service)
         if match:
             service_name = match.group(1)
@@ -121,37 +157,38 @@ class vuln_report():
 
     
     def get_vulnerabilities(self, versions):
-        time.sleep(5)
-        #print(versions)
+        # 9a9374cd-04e7-4706-ae4c-fa4855a8f846
         vulnerabilities = {}
-        i = 2
+        auth = HTTPBasicAuth('apiKey', '9a9374cd-04e7-4706-ae4c-fa4855a8f846')
+        headers = {'Accept': 'application/json'}
+
+
         for service in versions:
-            i -= 1
-            url_encoded = service+"%20"+versions[service]
-            url = f"https://services.nvd.nist.gov/rest/json/cves/2.0?keywordSearch={url_encoded}"
-            response = requests.get(url)
-            print(response)
-            data = json.loads(response.text)
-            vulnerabilities[service] = data
-            if i == 0:
-                break
+            resultsPerPage = 0
+            if not versions[service] == "Unknown":
+                print(f"Searching CVEs for service {service}")
+                url = f"https://services.nvd.nist.gov/rest/json/cves/2.0?keywordSearch={service}"
+                response = requests.get(url, headers=headers, auth=auth)
+                while not response.status_code == 200:
+                    time.sleep(6)
+                    response = requests.get(url, headers=headers, auth=auth)
+                data = json.loads(response.text)
+                print(response.text)
+                while data["totalResults"] > data["resultsPerPage"]:
+                    resultsPerPage += data["resultsPerPage"]
+                    url = f"https://services.nvd.nist.gov/rest/json/cves/2.0?startIndex={resultsPerPage}&keywordSearch={service}"
+                    response = requests.get(url, headers=headers, auth=auth)
+                    data = json.loads(response.text)
+                vulnerabilities[service] = data
+                time.sleep(6)
+            else:
+                vulnerabilities[service] = "Unknown"
         
         return(vulnerabilities)
 
 
 
-
-asses = vuln_report()
-
-
-
-distro = asses.find_os()
-services = asses.find_services(distro)
-versions = asses.find_versions(distro, services)
-vulnerabilities = asses.get_vulnerabilities(versions)
-
-
-
+'''
 print(f"Data: {vulnerabilities}")
 with open('output.txt', 'w') as f:
     f.write('')
@@ -167,3 +204,4 @@ with open('output.txt', 'a+') as f:
         # Print the CVEs
         for num in range(cve['totalResults']):
             print(cve['vulnerabilities'][num]['cve']['id']+" "+cve['vulnerabilities'][num]['cve']['metrics']['cvssMetricV2'][0]['baseSeverity'], file=f )
+'''
