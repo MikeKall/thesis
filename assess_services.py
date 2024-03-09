@@ -4,11 +4,13 @@ import time
 import requests
 import json
 import platform
+from requests.auth import HTTPBasicAuth
+import csv
 
-class vuln_report():
+class assess_services():
     
     def __init__(self):
-        super(vuln_report, self).__init__()
+        super(assess_services, self).__init__()
 
     def has_numbers(self, inString):
         return any(char.isdigit() for char in inString)
@@ -57,7 +59,8 @@ class vuln_report():
         return services
 
     def GetWinVersions(self, services):
-        services_paths = {} # service_exe:path
+        service_version = {} # service_name:version
+        services_paths = {} # service_name:exe path
         
         # Get the paths of every service exe
         for service in services:
@@ -66,10 +69,28 @@ class vuln_report():
 
             if not "svchost.exe" in proc[0]:
                 services_paths[service] = proc[0].rstrip()
-        
-        #for exe in services_paths:
+            else:
+                services_paths[service] = 'Unknown'
+                
+        # Parse the full path of the exe and get the version
+        pattern = "(C:.*?exe)"
+        for service in services_paths:
+            services_paths[service] = services_paths[service].replace('\\','\\\\')
+            match = re.search(pattern, services_paths[service])
+            if match:
+                filtered_service_path = match.group(1)
+            else:
+                filtered_service_path = ''
             
-        return services_paths
+
+            if filtered_service_path:
+                cmd = f'wmic datafile where \'name="{filtered_service_path}"\' get version'
+                proc = (subprocess.run(cmd, capture_output=True)).stdout.decode().split("\n")
+                service_version[service] = proc[1].strip()
+            else:
+                service_version[service] = "Unknown"
+
+        return service_version
 
         
 
@@ -126,7 +147,7 @@ class vuln_report():
 
 
     def clean_service_name(self, service):
-        pattern = r'(\S+)(?=.service)'
+        pattern = '(\S+)(?=.service)'
         match = re.search(pattern, service)
         if match:
             service_name = match.group(1)
@@ -136,35 +157,35 @@ class vuln_report():
 
     
     def get_vulnerabilities(self, versions):
-        time.sleep(5)
-        #print(versions)
+        # 9a9374cd-04e7-4706-ae4c-fa4855a8f846
         vulnerabilities = {}
-        i = 2
+        auth = HTTPBasicAuth('apiKey', '9a9374cd-04e7-4706-ae4c-fa4855a8f846')
+        headers = {'Accept': 'application/json'}
+
+
         for service in versions:
-            i -= 1
-            url_encoded = service+"%20"+versions[service]
-            url = f"https://services.nvd.nist.gov/rest/json/cves/2.0?keywordSearch={url_encoded}"
-            response = requests.get(url)
-            print(response)
-            data = json.loads(response.text)
-            vulnerabilities[service] = data
-            if i == 0:
-                break
+            resultsPerPage = 0
+            if not versions[service] == "Unknown":
+                print(f"Searching CVEs for service {service}")
+                url = f"https://services.nvd.nist.gov/rest/json/cves/2.0?keywordSearch={service}"
+                response = requests.get(url, headers=headers, auth=auth)
+                while not response.status_code == 200:
+                    time.sleep(6)
+                    response = requests.get(url, headers=headers, auth=auth)
+                data = json.loads(response.text)
+                print(response.text)
+                while data["totalResults"] > data["resultsPerPage"]:
+                    resultsPerPage += data["resultsPerPage"]
+                    url = f"https://services.nvd.nist.gov/rest/json/cves/2.0?startIndex={resultsPerPage}&keywordSearch={service}"
+                    response = requests.get(url, headers=headers, auth=auth)
+                    data = json.loads(response.text)
+                vulnerabilities[service] = data
+                time.sleep(6)
+            else:
+                vulnerabilities[service] = "Unknown"
         
         return(vulnerabilities)
 
-
-
-
-asses = vuln_report()
-
-
-
-distro = asses.find_os()
-services = asses.find_services(distro)
-versions = asses.find_versions(distro, services)
-print(versions)
-#vulnerabilities = asses.get_vulnerabilities(versions)
 
 
 '''
