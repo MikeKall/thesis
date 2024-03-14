@@ -5,7 +5,10 @@ import requests
 import json
 import platform
 from requests.auth import HTTPBasicAuth
-import csv
+from os.path import exists
+import pandas as pd
+
+
 
 class assess_services():
     
@@ -157,34 +160,51 @@ class assess_services():
 
     
     def get_vulnerabilities(self, versions):
-        # 9a9374cd-04e7-4706-ae4c-fa4855a8f846
-        vulnerabilities = {}
-        auth = HTTPBasicAuth('apiKey', '9a9374cd-04e7-4706-ae4c-fa4855a8f846')
-        headers = {'Accept': 'application/json'}
-
-
-        for service in versions:
-            resultsPerPage = 0
-            if not versions[service] == "Unknown":
-                print(f"Searching CVEs for service {service}")
-                url = f"https://services.nvd.nist.gov/rest/json/cves/2.0?keywordSearch={service}"
-                response = requests.get(url, headers=headers, auth=auth)
-                while not response.status_code == 200:
-                    time.sleep(6)
-                    response = requests.get(url, headers=headers, auth=auth)
-                data = json.loads(response.text)
-                print(response.text)
-                while data["totalResults"] > data["resultsPerPage"]:
-                    resultsPerPage += data["resultsPerPage"]
-                    url = f"https://services.nvd.nist.gov/rest/json/cves/2.0?startIndex={resultsPerPage}&keywordSearch={service}"
-                    response = requests.get(url, headers=headers, auth=auth)
-                    data = json.loads(response.text)
-                vulnerabilities[service] = data
-                time.sleep(6)
-            else:
-                vulnerabilities[service] = "Unknown"
         
-        return(vulnerabilities)
+        if exists("local_cves.csv"):
+           vulnerabilities = self.get_cves_from_file(versions)
+        
+        else:
+            vulnerabilities = {}
+            auth = HTTPBasicAuth('apiKey', '9a9374cd-04e7-4706-ae4c-fa4855a8f846')
+            headers = {'Accept': 'application/json'}
+
+            with open('local_cves.json', 'w') as f:
+                for service in versions:
+                    resultsPerPage = 0
+                    if not versions[service] == "Unknown":
+                        print(f"Searching CVEs for service {service}")
+                        url = f"https://services.nvd.nist.gov/rest/json/cves/2.0?keywordSearch={service}"
+                        response = requests.get(url, headers=headers, auth=auth)
+                        while not response.status_code == 200:
+                            time.sleep(6)
+                            response = requests.get(url, headers=headers, auth=auth)
+                        data = json.loads(response.text)
+                        while data["totalResults"] > data["resultsPerPage"]:
+                            resultsPerPage += data["resultsPerPage"]
+                            url = f"https://services.nvd.nist.gov/rest/json/cves/2.0?startIndex={resultsPerPage}&keywordSearch={service}"
+                            response = requests.get(url, headers=headers, auth=auth)
+                            data = json.loads(response.text)
+                            
+                        
+                            json.dump(data, f)
+
+                        vulnerabilities[service] = data
+                        time.sleep(6)
+                    else:
+                        vulnerabilities[service] = "Unknown"
+            
+            #vulnerabilities[service]['vulnerabilities'][0]['cve']['configurations'][0][]
+            return(vulnerabilities)
+
+
+    def get_cves_from_file(self, versions):
+        dumpedDict = json.dumps(versions)
+        loaded_json = json.loads(dumpedDict)
+        print(loaded_json)
+        #df = pd.read_json(versions)
+        #cves = ""
+        #return cves
 
 
 

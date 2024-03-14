@@ -12,10 +12,6 @@ pprint(services)
 print(f"\n\n== Versions ==\n")
 pprint(versions)
 print("\n\n== Vulnerabilities ==\n")
-pprint(vulnerabilities)
+#pprint(vulnerabilities)
 
-with open('output.txt', 'w+') as f:
-    f.write(services)
-    f.write(versions)
-    f.write(vulnerabilities)
 #vulnerabilities = asses.get_vulnerabilities(versions)
