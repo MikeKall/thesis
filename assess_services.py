@@ -3,7 +3,6 @@ import re
 import time
 import requests
 import json
-import platform
 from requests.auth import HTTPBasicAuth
 from os.path import exists
 import pandas as pd
@@ -12,10 +11,12 @@ import pandas as pd
 
 class assess_services():
     
-    def __init__(self):
+    def __init__(self, distro):
         super(assess_services, self).__init__()
+        self.distro = distro
 
-    def has_numbers(self, inString):
+        
+    def HasNumbers(self, inString):
         return any(char.isdigit() for char in inString)
 
     def create_report(self, data):
@@ -25,28 +26,6 @@ class assess_services():
             for num in range(data['totalResults']):
                 print(data['vulnerabilities'][num]['cve']['id']+" "+data['vulnerabilities'][num]['cve']['metrics']['cvssMetricV2'][0]['baseSeverity'], file=f )
 
-
-    def find_os(self):
-        os = platform.system().lower()
-
-        if os == 'linux':
-            with open('/etc/os-release') as f:
-                data = [line.strip() for line in f if line.startswith(('PRETTY_NAME='))]
-                distro_name = [line.split('=')[1].strip('"') for line in data][0].lower()
-                if 'fedora' in distro_name or 'centos' in distro_name:
-                    print(f'Running on RedHat based')
-                    distro = "rh"                
-                elif 'debian' in distro_name or 'ubuntu' in distro_name:
-                    print(f'Running on Debian based')
-                    distro = "debian" 
-                return distro
-        elif os == 'windows':
-            print(f'Running on Windows')
-            distro = "windows" 
-            return distro
-        else:
-            print(f'OS {os} is not supported by the tool')
-            exit()
     
     def GetWinServices(self):
         cmd = ['powershell.exe', '-Command', 'Get-Service | Where-Object {$_.Status -eq "Running"} | select name']
@@ -97,7 +76,7 @@ class assess_services():
 
         
 
-    def find_services(self, distro):
+    def FindServices(self, distro):
         # Check the services for the running OS
         if distro == 'windows':
             services = self.GetWinServices()
@@ -113,7 +92,7 @@ class assess_services():
             return services
 
 
-    def find_versions(self, distro, services):
+    def FindVersions(self, distro, services):
         versions = {}
         if distro == 'windows':
             versions = self.GetWinVersions(services)
@@ -128,7 +107,7 @@ class assess_services():
                 else:
                     continue
                 if cmd_out:
-                    if not(service_name in versions.keys()) and self.has_numbers(cmd_out.split("-")[1]):
+                    if not(service_name in versions.keys()) and self.HasNumbers(cmd_out.split("-")[1]):
                         versions[service_name] = cmd_out.split("-")[1]   
             return versions
             
@@ -159,7 +138,7 @@ class assess_services():
         return service_name
 
     
-    def get_vulnerabilities(self, versions):
+    def GetVulnerabilities(self, versions):
         
         if exists("local_cves.csv"):
            vulnerabilities = self.get_cves_from_file(versions)
