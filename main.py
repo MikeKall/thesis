@@ -39,10 +39,10 @@ vulnerable_users = {}
 
 for user in local_users:
     stripped_user = user.strip()
-    stripped_user = "TALOS\mikerose"
+    stripped_user = "ALGSOC20L\mkalliafas"
     if stripped_user:
         print(f"\nTrying passwords for {stripped_user}")
-        success, password = test_users.PassCracker(wordlist, stripped_user)
+        success, password = test_users.WinPassCracker(wordlist, stripped_user)
         if success:
             vulnerable_users[stripped_user] = password
             print(f"\nFound password for {stripped_user}")
