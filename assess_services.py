@@ -3,16 +3,20 @@ import re
 import time
 import requests
 import json
-import platform
 from requests.auth import HTTPBasicAuth
-import csv
+from os.path import exists
+import pandas as pd
+
+
 
 class assess_services():
     
-    def __init__(self):
+    def __init__(self, distro):
         super(assess_services, self).__init__()
+        self.distro = distro
 
-    def has_numbers(self, inString):
+        
+    def HasNumbers(self, inString):
         return any(char.isdigit() for char in inString)
 
     def create_report(self, data):
@@ -22,28 +26,6 @@ class assess_services():
             for num in range(data['totalResults']):
                 print(data['vulnerabilities'][num]['cve']['id']+" "+data['vulnerabilities'][num]['cve']['metrics']['cvssMetricV2'][0]['baseSeverity'], file=f )
 
-
-    def find_os(self):
-        os = platform.system().lower()
-
-        if os == 'linux':
-            with open('/etc/os-release') as f:
-                data = [line.strip() for line in f if line.startswith(('PRETTY_NAME='))]
-                distro_name = [line.split('=')[1].strip('"') for line in data][0].lower()
-                if 'fedora' in distro_name or 'centos' in distro_name:
-                    print(f'Running on RedHat based')
-                    distro = "rh"                
-                elif 'debian' in distro_name or 'ubuntu' in distro_name:
-                    print(f'Running on Debian based')
-                    distro = "debian" 
-                return distro
-        elif os == 'windows':
-            print(f'Running on Windows')
-            distro = "windows" 
-            return distro
-        else:
-            print(f'OS {os} is not supported by the tool')
-            exit()
     
     def GetWinServices(self):
         cmd = ['powershell.exe', '-Command', 'Get-Service | Where-Object {$_.Status -eq "Running"} | select name']
@@ -94,7 +76,7 @@ class assess_services():
 
         
 
-    def find_services(self, distro):
+    def FindServices(self, distro):
         # Check the services for the running OS
         if distro == 'windows':
             services = self.GetWinServices()
@@ -110,7 +92,7 @@ class assess_services():
             return services
 
 
-    def find_versions(self, distro, services):
+    def FindVersions(self, distro, services):
         versions = {}
         if distro == 'windows':
             versions = self.GetWinVersions(services)
@@ -125,7 +107,7 @@ class assess_services():
                 else:
                     continue
                 if cmd_out:
-                    if not(service_name in versions.keys()) and self.has_numbers(cmd_out.split("-")[1]):
+                    if not(service_name in versions.keys()) and self.HasNumbers(cmd_out.split("-")[1]):
                         versions[service_name] = cmd_out.split("-")[1]   
             return versions
             
@@ -156,35 +138,52 @@ class assess_services():
         return service_name
 
     
-    def get_vulnerabilities(self, versions):
-        # 9a9374cd-04e7-4706-ae4c-fa4855a8f846
-        vulnerabilities = {}
-        auth = HTTPBasicAuth('apiKey', '9a9374cd-04e7-4706-ae4c-fa4855a8f846')
-        headers = {'Accept': 'application/json'}
-
-
-        for service in versions:
-            resultsPerPage = 0
-            if not versions[service] == "Unknown":
-                print(f"Searching CVEs for service {service}")
-                url = f"https://services.nvd.nist.gov/rest/json/cves/2.0?keywordSearch={service}"
-                response = requests.get(url, headers=headers, auth=auth)
-                while not response.status_code == 200:
-                    time.sleep(6)
-                    response = requests.get(url, headers=headers, auth=auth)
-                data = json.loads(response.text)
-                print(response.text)
-                while data["totalResults"] > data["resultsPerPage"]:
-                    resultsPerPage += data["resultsPerPage"]
-                    url = f"https://services.nvd.nist.gov/rest/json/cves/2.0?startIndex={resultsPerPage}&keywordSearch={service}"
-                    response = requests.get(url, headers=headers, auth=auth)
-                    data = json.loads(response.text)
-                vulnerabilities[service] = data
-                time.sleep(6)
-            else:
-                vulnerabilities[service] = "Unknown"
+    def GetVulnerabilities(self, versions):
         
-        return(vulnerabilities)
+        if exists("local_cves.csv"):
+           vulnerabilities = self.get_cves_from_file(versions)
+        
+        else:
+            vulnerabilities = {}
+            auth = HTTPBasicAuth('apiKey', '9a9374cd-04e7-4706-ae4c-fa4855a8f846')
+            headers = {'Accept': 'application/json'}
+
+            with open('local_cves.json', 'w') as f:
+                for service in versions:
+                    resultsPerPage = 0
+                    if not versions[service] == "Unknown":
+                        print(f"Searching CVEs for service {service}")
+                        url = f"https://services.nvd.nist.gov/rest/json/cves/2.0?keywordSearch={service}"
+                        response = requests.get(url, headers=headers, auth=auth)
+                        while not response.status_code == 200:
+                            time.sleep(6)
+                            response = requests.get(url, headers=headers, auth=auth)
+                        data = json.loads(response.text)
+                        while data["totalResults"] > data["resultsPerPage"]:
+                            resultsPerPage += data["resultsPerPage"]
+                            url = f"https://services.nvd.nist.gov/rest/json/cves/2.0?startIndex={resultsPerPage}&keywordSearch={service}"
+                            response = requests.get(url, headers=headers, auth=auth)
+                            data = json.loads(response.text)
+                            
+                        
+                            json.dump(data, f)
+
+                        vulnerabilities[service] = data
+                        time.sleep(6)
+                    else:
+                        vulnerabilities[service] = "Unknown"
+            
+            #vulnerabilities[service]['vulnerabilities'][0]['cve']['configurations'][0][]
+            return(vulnerabilities)
+
+
+    def get_cves_from_file(self, versions):
+        dumpedDict = json.dumps(versions)
+        loaded_json = json.loads(dumpedDict)
+        print(loaded_json)
+        #df = pd.read_json(versions)
+        #cves = ""
+        #return cves
 
 
 
