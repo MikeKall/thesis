@@ -184,23 +184,3 @@ class assess_services():
         #df = pd.read_json(versions)
         #cves = ""
         #return cves
-
-
-
-'''
-print(f"Data: {vulnerabilities}")
-with open('output.txt', 'w') as f:
-    f.write('')
-
-
-with open('output.txt', 'a+') as f:
-    for service in vulnerabilities:
-        cve = vulnerabilities[service]
-        print(service, file=f)
-        print(cve, file=f)
-        print()
-        print(f"There are {cve['totalResults']} known vulnerabilities for service {service}", file=f)
-        # Print the CVEs
-        for num in range(cve['totalResults']):
-            print(cve['vulnerabilities'][num]['cve']['id']+" "+cve['vulnerabilities'][num]['cve']['metrics']['cvssMetricV2'][0]['baseSeverity'], file=f )
-'''

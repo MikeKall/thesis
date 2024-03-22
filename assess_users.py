@@ -29,12 +29,12 @@ class assess_users():
         print("Wordlist loaded\n")
         return wordlist
     
-    def PassCracker(self, wordlist, local_user):
+    def WinPassCracker(self, wordlist, local_user):
         length = len(wordlist)
         count = 0
         bar = progressbar.ProgressBar(max_value=length)
         for password in wordlist:
-            password = "954862137Mk_"
+            #password = ""
             scriptBlockLine1 = "{"+f'$pass="{password}"|ConvertTo-SecureString -AsPlainText -Force'
             scriptBlockLine2 =  f"\n$Cred=New-Object System.Management.Automation.PsCredential('{local_user}',$pass)"
             scriptBlockLine3 = '\nStart-Process -FilePath cmd.exe /c -Credential $Cred }'
@@ -44,6 +44,7 @@ class assess_users():
             proc = (subprocess.run(cmd, capture_output=True))
             error = proc.stderr.decode().split("\n")
             output = proc.stdout.decode().split("\n")
+            time.sleep(1) # Depends on how fast the PC is. If it's slow, without a built in delay, there will be false positives
             if not error[0] and not output[0]:
                 return True, password
             
