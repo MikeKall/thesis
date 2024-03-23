@@ -1,12 +1,31 @@
 import subprocess
 import progressbar
 import time
+import re
 
 class assess_users():
     
-    def __init__(self, distro):
+    def __init__(self, distro, os):
         super(assess_users, self).__init__()
         self.distro = distro
+        self.os = os
+
+    def GetUsers(self):
+        if self.os == "windows":
+            return self.GetWinUsers()
+        
+        elif self.os == "linux":
+            pattern = "^(.*?):"
+            local_users = []
+            users = subprocess.run(["cat", "/etc/passwd"], stdout=subprocess.PIPE).stdout.decode().split("\n")
+            for user in users:
+                user = re.findall(pattern, user)
+                if user:
+                    local_users.append(user[0])
+            
+            return local_users
+        else:
+            print(f"Couldn't find os {self.os}")
 
     def GetWinUsers(self):
         cmd = ['powershell', '-c', 'Get-WmiObject -Class Win32_UserAccount | foreach { $_.Caption }']
@@ -52,6 +71,38 @@ class assess_users():
             bar.update(count)
 
         return False, password
+    
+
+    def LinuxPassCracker(self, wordlist, local_user):
+        #
+        # yescript nightmare
+        #
+
+        length = len(wordlist)
+        count = 0
+        bar = progressbar.ProgressBar(max_value=length)
+        for password in wordlist:
+                     
+            
+            cmd = [f"su", "-l", local_user]
+            
+            proc = subprocess.run(cmd, input=password.encode(), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)            
+            #time.sleep(1) # Depends on how fast the PC is. If it's slow, without a built in delay, there will be false positives
+            if proc.returncode == 0:
+                return True, password
+            
+            count+=1
+            bar.update(count)
+
+        return False, password
+
+
+    def PassCracker(self, wordlist, local_user):
+        if self.os == "windows":
+            return self.WinPassCracker(wordlist, local_user)
+        elif self.os == "linux":
+            return self.LinuxPassCracker(wordlist, local_user)
+
 
     def PrivilagedGroupsMember(self, vulnerable_user):
         cmd1 = ['powershell', '-c', 'Get-LocalGroupMember -name "Administrators" | foreach {$_.Name}']
