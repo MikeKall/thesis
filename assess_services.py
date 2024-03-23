@@ -11,9 +11,10 @@ import pandas as pd
 
 class assess_services():
     
-    def __init__(self, distro):
+    def __init__(self, distro, os):
         super(assess_services, self).__init__()
         self.distro = distro
+        self.os = os
 
         
     def HasNumbers(self, inString):
@@ -76,29 +77,29 @@ class assess_services():
 
         
 
-    def FindServices(self, distro):
+    def FindServices(self):
         # Check the services for the running OS
-        if distro == 'windows':
+        if self.distro == 'windows':
             services = self.GetWinServices()
             return services
-        elif distro == "rh":
+        elif self.distro == "rh":
             # Get a list of all running services
             services = subprocess.run(["systemctl", "list-units", "--type=service", "--state=running"], stdout=subprocess.PIPE).stdout.decode().split("\n")
             return services
             
-        elif distro == "debian":
+        elif self.distro == "debian":
             # Get a list of all running services
             services = subprocess.run(["systemctl", "list-units", "--type=service", "--state=running"], stdout=subprocess.PIPE).stdout.decode().split("\n")           
             return services
 
 
-    def FindVersions(self, distro, services):
+    def FindVersions(self, services):
         versions = {}
-        if distro == 'windows':
+        if self.distro == 'windows':
             versions = self.GetWinVersions(services)
             return versions
         
-        elif distro == "rh":
+        elif self.distro == "rh":
             for service in services:
                 service_name = self.clean_service_name(service)
                 if service_name:
@@ -111,7 +112,7 @@ class assess_services():
                         versions[service_name] = cmd_out.split("-")[1]   
             return versions
             
-        elif distro == "debian":
+        elif self.distro == "debian":
             for service in services:
                 service_name = self.clean_service_name(service)
                 if service_name:

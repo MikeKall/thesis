@@ -17,11 +17,11 @@ def find_os():
                 elif 'debian' in distro_name or 'ubuntu' in distro_name:
                     print(f'Running on Debian based')
                     distro = "debian" 
-                return distro
+                return distro, os
         elif os == 'windows':
             print(f'Running on Windows')
             distro = "windows" 
-            return distro
+            return distro, os
         else:
             print(f'OS {os} is not supported by the tool')
             exit()
@@ -30,19 +30,36 @@ def find_os():
 
 
 
-distro = find_os()
-#test_services = assess_services.assess_services()
-test_users = assess_users.assess_users(distro)
-local_users = test_users.GetWinUsers()
+distro, os = find_os()
+
+# Find vulnerable services
+'''
+test_services = assess_services.assess_services(distro, os)
+services = test_services.FindServices()
+versions = test_services.FindVersions(services)
+vulnerabilities = test_services.GetVulnerabilities(versions)
+print(f"\n\n== Services ==\n")
+pprint(services)
+print(f"\n\n== Versions ==\n")
+pprint(versions)
+print("\n\n== Vulnerabilities ==\n")
+pprint(vulnerabilities)
+
+'''
+
+
+
+test_users = assess_users.assess_users(distro, os)
+local_users = test_users.GetUsers()
 wordlist = test_users.ReadWordlist()
 vulnerable_users = {}
 
 for user in local_users:
     stripped_user = user.strip()
-    stripped_user = "ALGSOC20L\mkalliafas"
+    #stripped_user = "ALGSOC20L\mkalliafas"
     if stripped_user:
         print(f"\nTrying passwords for {stripped_user}")
-        success, password = test_users.WinPassCracker(wordlist, stripped_user)
+        success, password = test_users.PassCracker(wordlist, stripped_user)
         if success:
             vulnerable_users[stripped_user] = password
             print(f"\nFound password for {stripped_user}")
@@ -56,18 +73,3 @@ critical_users = []
 
 for user in vulnerable_users:
    critical_users.append(test_users.PrivilagedGroupsMember(user))
-
-
-
-
-#services = assess.FindServices(distro)
-#versions = assess.FindVersions(distro, services)
-#vulnerabilities = assess.GetVulnerabilities(versions)
-#print(f"\n\n== Services ==\n")
-#pprint(services)
-#print(f"\n\n== Versions ==\n")
-#pprint(versions)
-#print("\n\n== Vulnerabilities ==\n")
-#pprint(vulnerabilities)
-
-#vulnerabilities = asses.get_vulnerabilities(versions)
