@@ -54,9 +54,15 @@ class assess_users():
         return False, password
 
     def PrivilagedGroupsMember(self, vulnerable_user):
-        cmd = ['powershell', '-c', 'Get-LocalGroupMember -name "Administrators" | foreach {$_.Name}']
-        group_members = (subprocess.run(cmd, capture_output=True)).stdout.decode().split("\n")
-        for member in group_members:
+        cmd1 = ['powershell', '-c', 'Get-LocalGroupMember -name "Administrators" | foreach {$_.Name}']
+        cmd2 = ['powershell', '-c', 'Get-LocalGroupMember -name "Backup Operators" | foreach {$_.Name}']
+        admins_members = (subprocess.run(cmd1, capture_output=True)).stdout.decode().split("\n")
+        bo_members = (subprocess.run(cmd2, capture_output=True)).stdout.decode().split("\n")
+        for member in admins_members:
+            if vulnerable_user == member.strip():
+                return vulnerable_user
+        
+        for member in bo_members:
             if vulnerable_user == member.strip():
                 return vulnerable_user
     
