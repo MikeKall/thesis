@@ -1,5 +1,5 @@
 import subprocess
-import progressbar
+from progressbar import ProgressBar, Percentage, Bar, RotatingMarker, ETA, Timer, AdaptiveETA
 import time
 import re
 
@@ -51,7 +51,9 @@ class assess_users():
     def WinPassCracker(self, wordlist, local_user):
         length = len(wordlist)
         count = 0
-        bar = progressbar.ProgressBar(max_value=length)
+        widgets = ['Progress: ', Percentage(), ' | ', Timer(), ' | ', AdaptiveETA()]
+        bar = ProgressBar(widgets=widgets, max_value=100).start()
+
         for password in wordlist:
             #password = ""
             scriptBlockLine1 = "{"+f'$pass="{password}"|ConvertTo-SecureString -AsPlainText -Force'
@@ -65,10 +67,11 @@ class assess_users():
             output = proc.stdout.decode().split("\n")
             time.sleep(1) # Depends on how fast the PC is. If it's slow, without a built in delay, there will be false positives
             if not error[0] and not output[0]:
+                bar.update(100)
                 return True, password
             
             count+=1
-            bar.update(count)
+            bar.update(self.TranslateTo100(count, length))
 
         return False, password
     
@@ -80,7 +83,8 @@ class assess_users():
 
         length = len(wordlist)
         count = 0
-        bar = progressbar.ProgressBar(max_value=length)
+        widgets = ['Progress: ', Percentage(), ' | ', Timer(), ' | ', AdaptiveETA()]
+        bar = ProgressBar(widgets=widgets, max_value=100).start()
         for password in wordlist:
                      
             
@@ -89,10 +93,11 @@ class assess_users():
             proc = subprocess.run(cmd, input=password.encode(), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)            
             #time.sleep(1) # Depends on how fast the PC is. If it's slow, without a built in delay, there will be false positives
             if proc.returncode == 0:
+                bar.update(100)
                 return True, password
             
             count+=1
-            bar.update(count)
+            bar.update(self.TranslateTo100(count, length))
 
         return False, password
 
@@ -118,3 +123,6 @@ class assess_users():
                 return "Backup Operators"
         return "-"
     
+
+    def TranslateTo100(self, count, length):
+        return int((count/length)*100)

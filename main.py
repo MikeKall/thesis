@@ -32,6 +32,7 @@ def find_os():
 
 distro, os = find_os()
 
+'''
 print("==== Assessment for local services ====")
 
 # Find vulnerable services
@@ -64,6 +65,7 @@ for service in versions:
     except Exception as e:
         pass
 
+'''
 
 
 print("\n\n\n==== Assessment for local Users ====")
