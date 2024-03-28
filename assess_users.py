@@ -110,10 +110,11 @@ class assess_users():
         admins_members = (subprocess.run(cmd1, capture_output=True)).stdout.decode().split("\n")
         bo_members = (subprocess.run(cmd2, capture_output=True)).stdout.decode().split("\n")
         for member in admins_members:
-            if vulnerable_user == member.strip():
-                return vulnerable_user
+            if vulnerable_user in member.strip():
+                return "Administrators"
         
         for member in bo_members:
-            if vulnerable_user == member.strip():
-                return vulnerable_user
+            if vulnerable_user in member.strip():
+                return "Backup Operators"
+        return "-"
     
