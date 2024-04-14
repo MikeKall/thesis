@@ -19,14 +19,6 @@ class assess_services():
         
     def HasNumbers(self, inString):
         return any(char.isdigit() for char in inString)
-
-    def create_report(self, data):
-        with open('output.txt', 'w+') as f:
-            print(f"There are {data['totalResults']} known vulnerabilities for service {service}", file=f)
-            # Print the CVEs
-            for num in range(data['totalResults']):
-                print(data['vulnerabilities'][num]['cve']['id']+" "+data['vulnerabilities'][num]['cve']['metrics']['cvssMetricV2'][0]['baseSeverity'], file=f )
-
     
     def GetWinServices(self):
         cmd = ['powershell.exe', '-Command', 'Get-Service | Where-Object {$_.Status -eq "Running"} | select name']
@@ -141,8 +133,9 @@ class assess_services():
     
     def GetVulnerabilities(self, versions):
         
-        if exists("local_cves.csv"):
-           vulnerabilities = self.get_cves_from_file(versions)
+        if exists("local_cves.json"):
+           print("Cached file found")
+           vulnerabilities = self.get_cves_from_file()
         
         else:
             vulnerabilities = {}
@@ -171,17 +164,12 @@ class assess_services():
 
                         vulnerabilities[service] = data
                         time.sleep(6)
-                    else:
-                        vulnerabilities[service] = "Unknown"
             
-            #vulnerabilities[service]['vulnerabilities'][0]['cve']['configurations'][0][]
-            return(vulnerabilities)
+        return vulnerabilities
 
 
-    def get_cves_from_file(self, versions):
-        dumpedDict = json.dumps(versions)
-        loaded_json = json.loads(dumpedDict)
-        print(loaded_json)
-        #df = pd.read_json(versions)
-        #cves = ""
-        #return cves
+    def get_cves_from_file(self):
+        with open("local_cves.json", "r") as f:
+            loaded_json = json.load(f)
+        
+        return loaded_json
