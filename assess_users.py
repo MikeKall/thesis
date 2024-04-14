@@ -36,10 +36,10 @@ class assess_users():
         
         return local_users
     
-    def ReadWordlist(self):
+    def ReadWordlist(self, wordlist_f):
         wordlist = []
         print("Loading wordlist. This might take a while.")
-        with open('wordlist', 'r', encoding="utf8") as file:
+        with open(wordlist_f, 'r', encoding="utf8") as file:
             content = file.read().splitlines()
         
         for line in content:
