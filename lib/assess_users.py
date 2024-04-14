@@ -15,13 +15,14 @@ class assess_users():
             return self.GetWinUsers()
         
         elif self.os == "linux":
-            pattern = "^(.*?):"
+            pattern = r"^(.*?):(.*?):"
             local_users = []
-            users = subprocess.run(["cat", "/etc/passwd"], stdout=subprocess.PIPE).stdout.decode().split("\n")
+            users = subprocess.run(["cat", "/etc/shadow"], stdout=subprocess.PIPE).stdout.decode().split("\n")
             for user in users:
-                user = re.findall(pattern, user)
-                if user:
-                    local_users.append(user[0])
+                captures = re.search(pattern, user)
+                if captures:
+                    if captures.groups()[0] and len(captures.groups()[1])>=3:
+                        local_users.append(captures.groups()[0])
             
             return local_users
         else:
@@ -86,11 +87,9 @@ class assess_users():
         widgets = ['Progress: ', Percentage(), ' | ', Timer(), ' | ', AdaptiveETA()]
         bar = ProgressBar(widgets=widgets, max_value=100).start()
         for password in wordlist:
-                     
-            
             cmd = [f"su", "-l", local_user]
             
-            proc = subprocess.run(cmd, input=password.encode(), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)            
+            proc = subprocess.run(cmd, input=password.encode(), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             #time.sleep(1) # Depends on how fast the PC is. If it's slow, without a built in delay, there will be false positives
             if proc.returncode == 0:
                 bar.update(100)

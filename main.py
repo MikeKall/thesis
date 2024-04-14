@@ -1,6 +1,7 @@
-import assess_services
-import assess_users
-from pprint import pprint 
+import lib.assess_services as assess_services 
+import lib.assess_users as assess_users
+import lib.assess_configs as assess_configs
+from pprint import pprint
 import platform
 import threading
 import json
@@ -12,6 +13,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-U", "--crack_users", action="store_true", help='Use a wordlist to test user passwords')
 parser.add_argument("-w", "--wordlist", help='Provide a wordlist file')
 parser.add_argument("-S", "--services",action="store_true", help='Provide a wordlist file' )
+parser.add_argument("-C", "--configurations", action="store_true", help='Check for missconfigurations in services')
 args = parser.parse_args()
 
 # Check if wordlist is provided
@@ -130,6 +132,12 @@ if args.crack_users:
         print("\n== High privilaged Users ==")
         for user, group in critical_users.items():
             print(f"User {user} is a member of {group}")
+
+if args.configurations:
+    test_configurations = assess_configs.assess_configs(distro, os)
+    test_configurations.apache_configs()
+
+
 
 
 if not service_trigger and not user_trigger and not configs_trigger:
