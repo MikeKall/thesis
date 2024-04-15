@@ -53,11 +53,6 @@ if args.services:
             continue
         index += 1
     '''
-    if not cache_exists:
-        dtime = datetime.today().strftime('_%Y_%m_%d')
-        with open(f"CachedCVEs{dtime}.json", "w") as f:
-            vuln = {dtime:vulnerabilities}
-            f.write(json.dumps(vuln))
 
     '''
     for service in versions:

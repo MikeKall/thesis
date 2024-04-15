@@ -5,7 +5,7 @@ import requests
 import json
 import os
 from os.path import exists
-
+import re
 
 class CVEFetcher():
     def __init__(self, versions):
@@ -13,28 +13,37 @@ class CVEFetcher():
     
     def GetVulnerabilities(self):
         cached = False
+        cached_cves_f = [pos_json for pos_json in os.listdir('.') if pos_json.startswith('CachedCVEs')]
+        if cached_cves_f:
+            if exists(cached_cves_f):
+                if not os.stat(cached_cves_f[0]).st_size == 0:
+                    print("Cached file found")
+                    cached = True
+                    vulnerabilities = self.get_CVEs_Local(cached_cves_f[0])
+
+                    return vulnerabilities, cached
+        return self.get_CVEs_NIST(), cached
+
+    def get_CVEs_Local(self, cached_cves_f):
         pattern = r"_(.*?).json"
-        if exists("CachedCVEs.json"):
-            if not os.stat("CachedCVEs.json").st_size == 0:
-                print("Cached file found")
-                cached = True
-                vulnerabilities = self.get_CVEs_Local()
-
-                return vulnerabilities, cached
-        else:
-            return self.get_CVEs_NIST(), cached
-
-    def get_CVEs_Local(self, versions):
-        json_file = [pos_json for pos_json in os.listdir('.') if pos_json.startswith('CachedCVEs')]
-        with open(json_file[0], "r") as f:
-            loaded_json = json.load(f)    
-        return loaded_json, versions
+        match = re.search(pattern, cached_cves_f)
+        date_str = match.group(1)
+        current_dtime = datetime.today().strftime('%Y_%m_%d')
+        file_date = datetime.strptime(date_str, "%Y_%m_%d")
+        current_dtime = datetime.strptime(current_dtime, "%Y_%m_%d")
+        
+        delta = current_dtime - file_date
+        print(f"Delta is {delta}")
+        if delta.days < 7:
+            with open(cached_cves_f, "r") as f:
+                loaded_json = json.load(f)    
+            return loaded_json
 
     def get_CVEs_NIST(self):
         vulnerabilities = {}
         auth = HTTPBasicAuth("apiKey", "9a9374cd-04e7-4706-ae4c-fa4855a8f846")
         headers = {"Accept": "application/json"}
-        dtime = datetime.today().strftime('_%Y_%m_%d')
+        dtime = datetime.today().strftime('%Y_%m_%d')
 
 
         with open(f"CachedCVEs{dtime}.json", "w") as f:
