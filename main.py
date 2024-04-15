@@ -1,18 +1,19 @@
-import lib.assess_services as assess_services 
+import lib.ServiceScanController as ServiceScanController 
+import lib.os_prober as os_prober
 import lib.assess_users as assess_users
 import lib.assess_configs as assess_configs
+import lib.CVEFetcher as CVEFetcher
 from pprint import pprint
-import platform
-import threading
 import json
-from os.path import exists
 import argparse
+from datetime import datetime
+
 
 # Create script arguments 
 parser = argparse.ArgumentParser()
 parser.add_argument("-U", "--crack_users", action="store_true", help='Use a wordlist to test user passwords')
 parser.add_argument("-w", "--wordlist", help='Provide a wordlist file')
-parser.add_argument("-S", "--services",action="store_true", help='Provide a wordlist file' )
+parser.add_argument("-S", "--services",action="store_true", help='Check services for CVEs' )
 parser.add_argument("-C", "--configurations", action="store_true", help='Check for missconfigurations in services')
 args = parser.parse_args()
 
@@ -24,54 +25,41 @@ if args.crack_users and not args.wordlist:
 service_trigger = False
 user_trigger = False
 configs_trigger = False
-
-
-# Determine in which OS the script is running
-def find_os():
-        os = platform.system().lower()
-
-        if os == 'linux':
-            with open('/etc/os-release') as f:
-                data = [line.strip() for line in f if line.startswith(('PRETTY_NAME='))]
-                distro_name = [line.split('=')[1].strip('"') for line in data][0].lower()
-                if 'fedora' in distro_name or 'centos' in distro_name:
-                    print(f'Running on RedHat based')
-                    distro = "rh"                
-                elif 'debian' in distro_name or 'ubuntu' in distro_name:
-                    print(f'Running on Debian based')
-                    distro = "debian" 
-                return distro, os
-        elif os == 'windows':
-            print(f'Running on Windows')
-            distro = "windows" 
-            return distro, os
-        else:
-            print(f'OS {os} is not supported by the tool')
-            exit()
-
-
-distro, os = find_os()
-
+distro, os = os_prober.os_prober.find_os()
+serviceController_obj = ServiceScanController.ServiceScanController(distro)
 
 if args.services:
     service_trigger = True
     print("==== Assessment for local services ====")
 
     # Find vulnerable services
-    test_services = assess_services.assess_services(distro, os)
-    services = test_services.FindServices()
-    versions = test_services.FindVersions(services)
-    vulnerabilities = test_services.GetVulnerabilities(versions)
+    services = serviceController_obj.FindServices()
+    versions = serviceController_obj.FindVersions(services)
+    CVESFetcher_obj = CVEFetcher.CVEFetcher(versions)
+    vulnerabilities, cache_exists = CVESFetcher_obj.GetVulnerabilities()
     print(f"\n\n== Services ==\n")
     pprint(services)
     print(f"\n\n== Versions ==\n")
     pprint(versions)
-
     print("\n\n== Vulnerabilities ==\n")
     #pprint(vulnerabilities)
-    with open("local_cves.json", "w+") as f:
-        f.write(json.dumps(vulnerabilities))
+    '''
+    for key, service in vulnerabilities:
+        index = 0
+        try:
+            next(iter(vulnerabilities.values()))
+            #print(vulnerabilities[0][service]['vulnerabilities'][])
+        except:
+            continue
+        index += 1
+    '''
+    if not cache_exists:
+        dtime = datetime.today().strftime('_%Y_%m_%d')
+        with open(f"CachedCVEs{dtime}.json", "w") as f:
+            vuln = {dtime:vulnerabilities}
+            f.write(json.dumps(vuln))
 
+    '''
     for service in versions:
         print(f"Service: {service}")
         try:
@@ -86,6 +74,7 @@ if args.services:
                 index+=1    
         except Exception as e:
             pass
+    '''
 
 
 

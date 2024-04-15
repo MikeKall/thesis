@@ -128,4 +128,4 @@ dmypy.json
 .pyre/
 
 # Other files
-output.txt
+Cached_CVEs*.json
