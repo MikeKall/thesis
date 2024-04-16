@@ -97,7 +97,6 @@ class CVEFetcher():
                     match = re.search(pattern, service_version)
                     
                     if match:
-                        print("IN")
                         service_version = match.group(0)
                         if has_startingVersion and has_endingVersion:
                             if Version(starting_version) <= Version(service_version) <= Version(ending_version):
@@ -122,6 +121,5 @@ class CVEFetcher():
                                                                         "Impact Score": vulnerabilities[service_name]['vulnerabilities'][index]['cve']['metrics']['cvssMetricV2'][0]['impactScore']
                                                                         }
                             break
-                    print(index)
                     index += 1
         return active_vulnerbilities, possible_vulnerabilities
