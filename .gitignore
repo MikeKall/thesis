@@ -128,4 +128,5 @@ dmypy.json
 .pyre/
 
 # Other files
-Cached_CVEs*.json
+*.json
+.vscode

@@ -37,12 +37,23 @@ if args.services:
     versions = serviceController_obj.FindVersions(services)
     CVESFetcher_obj = CVEFetcher.CVEFetcher(versions)
     vulnerabilities, cache_exists = CVESFetcher_obj.GetVulnerabilities()
+    if not cache_exists:
+        CVESFetcher_obj.writeTofile(vulnerabilities)
+
     print(f"\n\n== Services ==\n")
-    pprint(services)
+    #pprint(services)
     print(f"\n\n== Versions ==\n")
     pprint(versions)
     print("\n\n== Vulnerabilities ==\n")
     #pprint(vulnerabilities)
+
+    active_vulnerabilites, possible_vulnerabilites = CVESFetcher_obj.CVEfilter(versions, vulnerabilities)
+    
+    print(f"== Active ==\n{active_vulnerabilites}")
+    print("")
+    print("")
+    print(f"== Possible ==\n{possible_vulnerabilites}")
+
     '''
     for key, service in vulnerabilities:
         index = 0
