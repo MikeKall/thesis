@@ -88,11 +88,12 @@ class CVEFetcher():
         for service_name, service_version in self.versions.items():
             while True:
                 
-                # Check if the service has vulnerabilities
+                # Check if NIST has returned any vulnerabilities for each services
                 try:
                     if not vulnerabilities[service_name]['resultsPerPage'] > 0:
                         break
                 except:
+                    # if services doesn't exist in the vulnerabilietis dict
                     break
 
                 if not service_version == "Unknown":
