@@ -80,46 +80,69 @@ class CVEFetcher():
                 index = 0
                 has_startingVersion = True
                 has_endingVersion = True
+                pattern = r"^([\d.-]+)"
                 while vulnerabilities[service_name]['resultsPerPage'] > 0:
                     try:
                         starting_version = vulnerabilities[service_name]['vulnerabilities'][index]['cve']['configurations'][0]["nodes"][0]["cpeMatch"][0]["versionEndIncluding"]
+                        starting_version_match = re.search(pattern, starting_version)
+                        if starting_version_match:
+                            starting_version = starting_version_match.group(0)
                     except:
                         has_startingVersion = False
                         pass
                     
                     try:
                         ending_version = vulnerabilities[service_name]['vulnerabilities'][index]['cve']['configurations'][0]["nodes"][0]["cpeMatch"][0]["versionEndIncluding"]
+                        ending_version_match = re.search(pattern, ending_version)
+                        if ending_version_match:
+                            ending_version = ending_version_match.group(0)
                     except:
                         has_endingVersion = False
                         pass
                     
-                    pattern = r"^([\d.-]+)"
-                    match = re.search(pattern, service_version)
                     
-                    if match:
-                        service_version = match.group(0)
-                        if has_startingVersion and has_endingVersion:
-                            if Version(starting_version) <= Version(service_version) <= Version(ending_version):
-                                active_vulnerbilities[service_name] = {"CVE": vulnerabilities[service_name]['vulnerabilities'][index]['cve']['id'],
-                                                                        "Severity": vulnerabilities[service_name]['vulnerabilities'][index]['cve']['metrics']['cvssMetricV2'][0]['baseSeverity'],
-                                                                        "Exploitability Score": vulnerabilities[service_name]['vulnerabilities'][index]['cve']['metrics']['cvssMetricV2'][0]['exploitabilityScore'],
-                                                                        "Impact Score": vulnerabilities[service_name]['vulnerabilities'][index]['cve']['metrics']['cvssMetricV2'][0]['impactScore']
-                                                                        }
+                    service_version_match = re.search(pattern, service_version)
+                    
+                    """
+                    print(f"Service Version: {service_version}")
+                    print(f"Starting Version: {starting_version}")
+                    print(f"Ending Version: {ending_version}")
+                    print(f"Index: {index}")
+                    print("")
+                    """
+                    try:
+                        if service_version_match:
+                            service_version = service_version_match.group(0)
+                            if has_startingVersion and has_endingVersion:
+                                if Version(starting_version) <= Version(service_version) <= Version(ending_version):
+                                    active_vulnerbilities[service_name] = {"CVE": vulnerabilities[service_name]['vulnerabilities'][index]['cve']['id'],
+                                                                            "Severity": vulnerabilities[service_name]['vulnerabilities'][index]['cve']['metrics']['cvssMetricV2'][0]['baseSeverity'],
+                                                                            "Exploitability Score": vulnerabilities[service_name]['vulnerabilities'][index]['cve']['metrics']['cvssMetricV2'][0]['exploitabilityScore'],
+                                                                            "Impact Score": vulnerabilities[service_name]['vulnerabilities'][index]['cve']['metrics']['cvssMetricV2'][0]['impactScore'],
+                                                                            "Service Version": service_version,
+                                                                            "Starting Version": starting_version,
+                                                                            "Ending Version": ending_version}
                                 break
-                        elif has_endingVersion:
-                            if Version(service_version) <= Version(ending_version):
-                                active_vulnerbilities[service_name] = {"CVE": vulnerabilities[service_name]['vulnerabilities'][index]['cve']['id'],
-                                                                        "Severity": vulnerabilities[service_name]['vulnerabilities'][index]['cve']['metrics']['cvssMetricV2'][0]['baseSeverity'],
-                                                                        "Exploitability Score": vulnerabilities[service_name]['vulnerabilities'][index]['cve']['metrics']['cvssMetricV2'][0]['exploitabilityScore'],
-                                                                        "Impact Score": vulnerabilities[service_name]['vulnerabilities'][index]['cve']['metrics']['cvssMetricV2'][0]['impactScore']
-                                                                        }
-                            break
-                        else:
-                            possible_vulnerabilities[service_name] = {"CVE": vulnerabilities[service_name]['vulnerabilities'][index]['cve']['id'],
-                                                                        "Severity": vulnerabilities[service_name]['vulnerabilities'][index]['cve']['metrics']['cvssMetricV2'][0]['baseSeverity'],
-                                                                        "Exploitability Score": vulnerabilities[service_name]['vulnerabilities'][index]['cve']['metrics']['cvssMetricV2'][0]['exploitabilityScore'],
-                                                                        "Impact Score": vulnerabilities[service_name]['vulnerabilities'][index]['cve']['metrics']['cvssMetricV2'][0]['impactScore']
-                                                                        }
-                            break
+                            elif has_endingVersion:
+                                if Version(service_version) <= Version(ending_version):
+                                    active_vulnerbilities[service_name] = {"CVE": vulnerabilities[service_name]['vulnerabilities'][index]['cve']['id'],
+                                                                            "Severity": vulnerabilities[service_name]['vulnerabilities'][index]['cve']['metrics']['cvssMetricV2'][0]['baseSeverity'],
+                                                                            "Exploitability Score": vulnerabilities[service_name]['vulnerabilities'][index]['cve']['metrics']['cvssMetricV2'][0]['exploitabilityScore'],
+                                                                            "Impact Score": vulnerabilities[service_name]['vulnerabilities'][index]['cve']['metrics']['cvssMetricV2'][0]['impactScore'],
+                                                                            "Service Version": service_version,
+                                                                            "Ending Version": ending_version}
+                                    
+                                break
+                                
+                            else:
+                                possible_vulnerabilities[service_name] = {"CVE": vulnerabilities[service_name]['vulnerabilities'][index]['cve']['id'],
+                                                                            "Severity": vulnerabilities[service_name]['vulnerabilities'][index]['cve']['metrics']['cvssMetricV2'][0]['baseSeverity'],
+                                                                            "Exploitability Score": vulnerabilities[service_name]['vulnerabilities'][index]['cve']['metrics']['cvssMetricV2'][0]['exploitabilityScore'],
+                                                                            "Impact Score": vulnerabilities[service_name]['vulnerabilities'][index]['cve']['metrics']['cvssMetricV2'][0]['impactScore'],
+                                                                            "Service Version": service_version
+                                                                            }
+                                break
+                    except:
+                        pass
                     index += 1
         return active_vulnerbilities, possible_vulnerabilities
