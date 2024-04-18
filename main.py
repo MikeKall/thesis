@@ -39,6 +39,8 @@ if args.services:
     vulnerabilities, cache_exists = CVESFetcher_obj.GetVulnerabilities()
     if not cache_exists:
         CVESFetcher_obj.writeTofile(vulnerabilities)
+        
+
 
     print(f"\n\n== Services ==\n")
     #pprint(services)
@@ -47,7 +49,7 @@ if args.services:
     print("\n\n== Vulnerabilities ==\n")
     #pprint(vulnerabilities)
 
-    active_vulnerabilites, possible_vulnerabilites = CVESFetcher_obj.CVEfilter(versions, vulnerabilities)
+    active_vulnerabilites, possible_vulnerabilites = CVESFetcher_obj.CVEfilter(vulnerabilities)
     
     print(f"== Active ==\n")
     if active_vulnerabilites == None:
@@ -55,7 +57,7 @@ if args.services:
         print("")
     else:
         pprint(active_vulnerabilites)
-    print(f"== Possible ==\n")
+    print(f"== Other Possible Matches ==\n")
     pprint(possible_vulnerabilites)
     
 

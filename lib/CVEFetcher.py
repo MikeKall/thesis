@@ -21,10 +21,15 @@ class CVEFetcher():
                 if not os.stat(cached_cves_f[0]).st_size == 0:
                     print("Cached file found")
                     cached = True
-                    vulnerabilities = self.get_CVEs_Local(cached_cves_f[0])
+                    cached_vulnerabilities = self.get_CVEs_Local(cached_cves_f[0])
 
-                    return vulnerabilities, cached
+                    # Check if there is a new service that doesn't exist in the cached file
+                    for service, version in self.versions.items():
+                        if  not version == "Unknown" and not service in cached_vulnerabilities.keys():
+                            self.get_CVEs_NIST({service:version})
 
+                    return cached_vulnerabilities, cached
+        
         return self.get_CVEs_NIST(), cached
 
     def get_CVEs_Local(self, cached_cves_f):
@@ -40,13 +45,17 @@ class CVEFetcher():
             with open(cached_cves_f, "r") as f:
                 loaded_json = json.load(f)    
             return loaded_json
+        else:
+            return self.get_CVEs_NIST()
 
-    def get_CVEs_NIST(self):
+    def get_CVEs_NIST(self, versions={}):
         vulnerabilities = {}
         auth = HTTPBasicAuth("apiKey", "9a9374cd-04e7-4706-ae4c-fa4855a8f846")
         headers = {"Accept": "application/json"}
+        if not versions:
+            versions = self.versions
         
-        for service in self.versions:
+        for service in versions:
             resultsPerPage = 0
             if not self.versions[service] == "Unknown":
                 print(f"Searching CVEs for service {service}")
@@ -72,16 +81,25 @@ class CVEFetcher():
         with open(f"CachedCVEs{dtime}.json", "w+") as f:
             json.dump(data, f)
 
-    def CVEfilter(self, versions, vulnerabilities):
+    def CVEfilter(self, vulnerabilities):
         active_vulnerbilities = {}
         possible_vulnerabilities = {}
-        for service_name, service_version in versions.items():
-            if not service_version == "Unknown":
-                index = 0
-                has_startingVersion = True
-                has_endingVersion = True
-                pattern = r"^([\d.-]+)"
-                while vulnerabilities[service_name]['resultsPerPage'] > 0:
+        
+        for service_name, service_version in self.versions.items():
+            while True:
+                
+                # Check if the service has vulnerabilities
+                try:
+                    if not vulnerabilities[service_name]['resultsPerPage'] > 0:
+                        break
+                except:
+                    break
+
+                if not service_version == "Unknown":
+                    index = 0
+                    has_startingVersion = True
+                    has_endingVersion = True
+                    pattern = r"^([\d.-]+)"
                     try:
                         starting_version = vulnerabilities[service_name]['vulnerabilities'][index]['cve']['configurations'][0]["nodes"][0]["cpeMatch"][0]["versionEndIncluding"]
                         starting_version_match = re.search(pattern, starting_version)
@@ -102,14 +120,6 @@ class CVEFetcher():
                     
                     
                     service_version_match = re.search(pattern, service_version)
-                    
-                    """
-                    print(f"Service Version: {service_version}")
-                    print(f"Starting Version: {starting_version}")
-                    print(f"Ending Version: {ending_version}")
-                    print(f"Index: {index}")
-                    print("")
-                    """
                     try:
                         if service_version_match:
                             service_version = service_version_match.group(0)
