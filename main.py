@@ -49,40 +49,17 @@ if args.services:
 
     active_vulnerabilites, possible_vulnerabilites = CVESFetcher_obj.CVEfilter(versions, vulnerabilities)
     
-    print(f"== Active ==\n{active_vulnerabilites}")
-    print("")
-    print("")
-    print(f"== Possible ==\n{possible_vulnerabilites}")
+    print(f"== Active ==\n")
+    if active_vulnerabilites == None:
+        print("None found")
+        print("")
+    else:
+        pprint(active_vulnerabilites)
+    print(f"== Possible ==\n")
+    pprint(possible_vulnerabilites)
+    
 
-    '''
-    for key, service in vulnerabilities:
-        index = 0
-        try:
-            next(iter(vulnerabilities.values()))
-            #print(vulnerabilities[0][service]['vulnerabilities'][])
-        except:
-            continue
-        index += 1
-    '''
-
-    '''
-    for service in versions:
-        print(f"Service: {service}")
-        try:
-            index = 0
-            while True:
-                #print(f"CVE: {vulnerabilities[service]['vulnerabilities'][index]}")
-                print(f"CVE: {vulnerabilities[service]['vulnerabilities'][index]['cve']['id']}")
-                print(f"Severity: {vulnerabilities[service]['vulnerabilities'][index]['cve']['metrics']['cvssMetricV2'][0]['baseSeverity']}")
-                print(f"Exploitability Score: {vulnerabilities[service]['vulnerabilities'][index]['cve']['metrics']['cvssMetricV2'][0]['exploitabilityScore']}")
-                print(f"Impact Score: {vulnerabilities[service]['vulnerabilities'][index]['cve']['metrics']['cvssMetricV2'][0]['impactScore']}")
-                print("")
-                index+=1    
-        except Exception as e:
-            pass
-    '''
-
-
+    
 
 if args.crack_users:
     user_trigger = True
