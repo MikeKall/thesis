@@ -1,7 +1,7 @@
 import lib.Services.ServiceScanController as ServiceScanController 
 import lib.os_prober as os_prober
 import lib.Users.assess_users as assess_users
-import lib.Configurations.assess_configs as assess_configs
+import lib.Configurations.ConfigController as ConfigController
 import lib.Services.CVEFetcher as CVEFetcher
 from pprint import pprint
 import json
@@ -108,8 +108,12 @@ if args.crack_users:
             print(f"User {user} is a member of {group}")
 
 if args.configurations:
-    test_configurations = assess_configs.assess_configs(distro, os)
-    test_configurations.apache_configs()
+    configs_trigger = True
+    test_configurations = ConfigController.ConfigController(distro, os)
+    configuration_results = test_configurations.ChooseConfigs()
+    for item in configuration_results:
+        if item:
+            pprint(item)
 
 
 
