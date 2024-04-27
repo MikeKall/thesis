@@ -1,8 +1,8 @@
-import lib.ServiceScanController as ServiceScanController 
+import lib.Services.ServiceScanController as ServiceScanController 
 import lib.os_prober as os_prober
-import lib.assess_users as assess_users
-import lib.assess_configs as assess_configs
-import lib.CVEFetcher as CVEFetcher
+import lib.Users.assess_users as assess_users
+import lib.Configurations.assess_configs as assess_configs
+import lib.Services.CVEFetcher as CVEFetcher
 from pprint import pprint
 import json
 import argparse
@@ -52,7 +52,7 @@ if args.services:
     active_vulnerabilites, possible_vulnerabilites = CVESFetcher_obj.CVEfilter(vulnerabilities)
     
     print(f"== Active ==\n")
-    if active_vulnerabilites == None:
+    if not active_vulnerabilites: # if dictionary is empty
         print("None found")
         print("")
     else:
