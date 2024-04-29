@@ -1,8 +1,8 @@
-import lib.ServiceScanController as ServiceScanController 
+import lib.Services.ServiceScanController as ServiceScanController 
 import lib.os_prober as os_prober
-import lib.assess_users as assess_users
-import lib.assess_configs as assess_configs
-import lib.CVEFetcher as CVEFetcher
+import lib.Users.assess_users as assess_users
+import lib.Configurations.ConfigController as ConfigController
+import lib.Services.CVEFetcher as CVEFetcher
 from pprint import pprint
 import json
 import argparse
@@ -52,7 +52,7 @@ if args.services:
     active_vulnerabilites, possible_vulnerabilites = CVESFetcher_obj.CVEfilter(vulnerabilities)
     
     print(f"== Active ==\n")
-    if active_vulnerabilites == None:
+    if not active_vulnerabilites: # if dictionary is empty
         print("None found")
         print("")
     else:
@@ -108,8 +108,12 @@ if args.crack_users:
             print(f"User {user} is a member of {group}")
 
 if args.configurations:
-    test_configurations = assess_configs.assess_configs(distro, os)
-    test_configurations.apache_configs()
+    configs_trigger = True
+    test_configurations = ConfigController.ConfigController(distro, os)
+    configuration_results = test_configurations.ChooseConfigs()
+    for item in configuration_results:
+        if item:
+            pprint(item)
 
 
 

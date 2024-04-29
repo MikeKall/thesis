@@ -1,5 +1,5 @@
-import lib.WinServicesScanner as WinServicesScanner
-import lib.LinuxServicesScanner as LinuxServicesScanner
+import lib.Services.WinServicesScanner as WinServicesScanner
+import lib.Services.LinuxServicesScanner as LinuxServicesScanner
 
 class ServiceScanController:
 
