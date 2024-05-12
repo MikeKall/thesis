@@ -43,50 +43,48 @@ class LinuxConfigs():
                 multiline_check = False
                 lines = conf_file.readlines()
                 for line in lines:
-                    if "ServerTokens Prod" in line:
-                        hardening[file]["ServerTokens Prod"] = True
-                    if "ServerSignature Off" in line:
-                        hardening[file]["ServerSignature Off"] = True
-                    if "FileETag None" in line:
-                        hardening[file]["Etag"] = True
-                    if "TraceEnable off" in line:
-                        hardening[file]["TraceReq"] = True
-                    if "Header edit Set-Cookie ^(.*)$ $1;HttpOnly;Secure" in line:
-                        hardening[file]["CookieProtection"] = True
-                    if "Header always append X-Frame-Options SAMEORIGIN" in line:
-                        hardening[file]["ClickJacking Attack"] = True
-                    if 'Header set X-XSS-Protection "1; mode=block"' in line:
-                        hardening[file]["X-XSS protection"] = True
-                    if "SSLCertificateFile" in line or "SSLCertificateKeyFile" in line or "SSLCertificateChainFile" in line:
-                        hardening[file]["SSL"] = True
-                    if "<LimitExcept" in line:
-                        hardening[file]["HTTP Request Methods Restriction"] = True
+                    if not line.startswith("#"): # if line is commented out then don't evaluate
+                        if "ServerTokens Prod" in line:
+                            hardening[file]["ServerTokens Prod"] = True
+                        if "ServerSignature Off" in line:
+                            hardening[file]["ServerSignature Off"] = True
+                        if "FileETag None" in line:
+                            hardening[file]["Etag"] = True
+                        if "TraceEnable off" in line:
+                            hardening[file]["TraceReq"] = True
+                        if "Header edit Set-Cookie ^(.*)$ $1;HttpOnly;Secure" in line:
+                            hardening[file]["CookieProtection"] = True
+                        if "Header always append X-Frame-Options SAMEORIGIN" in line:
+                            hardening[file]["ClickJacking Attack"] = True
+                        if 'Header set X-XSS-Protection "1; mode=block"' in line:
+                            hardening[file]["X-XSS protection"] = True
+                        if "SSLCertificateFile" in line or "SSLCertificateKeyFile" in line or "SSLCertificateChainFile" in line:
+                            hardening[file]["SSL"] = True
+                        if "<LimitExcept" in line:
+                            hardening[file]["HTTP Request Methods Restriction"] = True
 
 
-                    if multiline_check:
-                        if browser_listing_flag:
-                            if "Options -Indexes" in line or "Options None" in line:
-                                hardening[file]["Browser Listing"] = True
-                                multiline_check = False
-                                browser_listing_flag = False
-                        elif sys_setting_protection_flag:
-                            if "Options -Indexes" in line or "AllowOverride None" in line:
-                                hardening[file]["System Setting Protection"] = True
-                                multiline_check = False
-                                browser_listing_flag = False
+                        if multiline_check:
+                            if browser_listing_flag:
+                                if "Options -Indexes" in line or "Options None" in line:
+                                    hardening[file]["Browser Listing"] = True
+                                    multiline_check = False
+                                    browser_listing_flag = False
+                            elif sys_setting_protection_flag:
+                                if "Options -Indexes" in line or "AllowOverride None" in line:
+                                    hardening[file]["System Setting Protection"] = True
+                                    multiline_check = False
+                                    browser_listing_flag = False
 
-                    if "<Directory /opt/apache/htdocs>" in line:
-                        browser_listing_flag = True
-                        multiline_check = True
-                    
-                    if "<Directory /> " in line:
-                        sys_setting_protection_flag = True
-                        multiline_check = True
+                        if "<Directory /opt/apache/htdocs>" in line:
+                            browser_listing_flag = True
+                            multiline_check = True
+                        
+                        if "<Directory /> " in line:
+                            sys_setting_protection_flag = True
+                            multiline_check = True
         return hardening
-    
 
-    def MySQL(self):
-        return "Linux Mysql"
     
     def PostgreSQL(self):
         return "Linux Postgresql"

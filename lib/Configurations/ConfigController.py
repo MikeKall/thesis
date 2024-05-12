@@ -14,9 +14,8 @@ class ConfigController():
     def ChooseConfigs(self):
         results = list
         services_dict = {"1":"Apache", 
-                         "2":"MySQL", 
-                         "3":"PostgreSQL", 
-                         "4":"Filezilla"
+                         "2":"PostgreSQL", 
+                         "3":"Filezilla"
                         }
         for key, value in services_dict.items():
             print(f"{key}. {value}")
