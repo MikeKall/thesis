@@ -111,9 +111,14 @@ if args.configurations:
     configs_trigger = True
     test_configurations = ConfigController.ConfigController(distro, os)
     configuration_results = test_configurations.ChooseConfigs()
-    for item in configuration_results:
-        if item:
-            pprint(item)
+
+    if any(configuration_results):
+        for item in configuration_results:
+            if item:
+                pprint(item)
+    else:
+        print("No hardening tips to recommend")
+
 
 
 

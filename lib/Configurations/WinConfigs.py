@@ -11,28 +11,13 @@ class WinConfigs():
 
 
     def Apache(self):
-        apache_config_path = input("Specify the Apache config Full Path: ")
-        config_files = []
+        apache_config_path = input("Please specify the configuration path for apache: ")
+        config_files = self.Get_Config_Files(apache_config_path, "apache")
         hardening = {}
-        try:
-            while not apache_config_path:
-                apache_config_path = input("Please specify the Apache config Full Path (q to quit): ")
-                if apache_config_path.lower() == "q":
-                    exit()
-        except Exception as e:
-            print(e)
-            exit()
-       
-        files = [f for f in listdir(apache_config_path) if isfile(join(apache_config_path, f))]
-        
-        for file in files:
-            print(file)
-            match = re.match("^.*\.conf$", file)
-            if match:
-                full_path = join(apache_config_path, file)
-                config_files.append(full_path)
 
-
+        if not config_files:
+            print("No configuration files were found in the specified directory")
+            return hardening
         try:
             for file in config_files:
                 hardening[file] = {"ServerTokens Prod":False, 
@@ -101,7 +86,60 @@ class WinConfigs():
         return hardening
     
     def PostgreSQL(self):
-        return "Windows Postgresql"
+        postgresql_config_path = input("Please specify the configuration path for postgresql: ")
+        config_files = self.Get_Config_Files(postgresql_config_path, "postgresql")
+        hardening = {}
+        if not config_files:
+            print("No configuration files were found in the specified directory")
+            return hardening
+        
+        try:
+            for file in config_files:
+                hardening[file] = {"unrestricted_listening":False,
+                                   "ssl":False}
+                
+            with open(file, "r") as conf_file:
+                    lines = conf_file.readlines()
+                    
+                    for line in lines:
+                        if not line.startswith("#"): # if line is commented out then don't evaluate
+                            if "listen_addresses" in line and "*" in line:
+                                hardening[file]["unrestricted_listening"] = True
+                            if re.match("^ssl.*=.*on$", line):
+                                hardening[file]["ssl"] = True
+
+            
+        except Exception as e:
+            print(e)
+
+        return hardening
 
     def Filezila(self):
         return "Windows Filezila"
+    
+
+    def Get_Config_Files(self, path, service):
+        config_files = []
+        retry_flag = False
+
+        while True:
+            if retry_flag:
+                path = input(f"Please specify the configuration path for {service} (q to quit): ")
+                if path.lower() == "q":
+                    exit()
+            try:
+                files = [f for f in listdir(path) if isfile(join(path, f))]
+                break
+            except OSError as e:
+                print("The specified path doesn't exist")
+                retry_flag = True
+                continue
+
+        for file in files:
+            match = re.match("^.*\.conf$", file)
+            if match:
+                full_path = join(path, file)
+                config_files.append(full_path)
+        
+      
+        return config_files
