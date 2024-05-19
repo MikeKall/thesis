@@ -2,6 +2,8 @@ import subprocess
 import time
 import re
 from pprint import pprint 
+from os import listdir
+from os.path import isfile, join
 
 class LinuxConfigs():
     
@@ -10,18 +12,14 @@ class LinuxConfigs():
         self.distro = distro
 
     def Apache(self):
-        if self.distro == "rh":
-            apache_config_path = input("Apache configs path (default:/etc/httpd/conf/): ")
-            config_files = []
-            if not apache_config_path:
-                apache_config_path = "/etc/httpd/conf/"
-            cmd = [f"find", apache_config_path, "-type", "f", "-name", "*.conf"]
-            configs = subprocess.run(cmd, stdout=subprocess.PIPE).stdout.decode().split("\n")
-            for config_file in configs:
-                    if config_file: 
-                        config_files.append(config_file)
+        apache_config_path = input("Specify the configurations Full Path: ")
+        config_files = self.Get_Config_Files(apache_config_path, "apache")
+        hardening = {}
 
-        hardening = {}      
+        if not config_files:
+            print("No configuration files were found in the specified directory")
+            return hardening
+      
         for file in config_files:
             hardening[file] = {"ServerTokens Prod":False, 
                                 "ServerSignature Off":False, 
@@ -43,53 +41,106 @@ class LinuxConfigs():
                 multiline_check = False
                 lines = conf_file.readlines()
                 for line in lines:
-                    if "ServerTokens Prod" in line:
-                        hardening[file]["ServerTokens Prod"] = True
-                    if "ServerSignature Off" in line:
-                        hardening[file]["ServerSignature Off"] = True
-                    if "FileETag None" in line:
-                        hardening[file]["Etag"] = True
-                    if "TraceEnable off" in line:
-                        hardening[file]["TraceReq"] = True
-                    if "Header edit Set-Cookie ^(.*)$ $1;HttpOnly;Secure" in line:
-                        hardening[file]["CookieProtection"] = True
-                    if "Header always append X-Frame-Options SAMEORIGIN" in line:
-                        hardening[file]["ClickJacking Attack"] = True
-                    if 'Header set X-XSS-Protection "1; mode=block"' in line:
-                        hardening[file]["X-XSS protection"] = True
-                    if "SSLCertificateFile" in line or "SSLCertificateKeyFile" in line or "SSLCertificateChainFile" in line:
-                        hardening[file]["SSL"] = True
-                    if "<LimitExcept" in line:
-                        hardening[file]["HTTP Request Methods Restriction"] = True
+                    if not line.startswith("#"): # if line is commented out then don't evaluate
+                        if "ServerTokens Prod" in line:
+                            hardening[file]["ServerTokens Prod"] = True
+                        if "ServerSignature Off" in line:
+                            hardening[file]["ServerSignature Off"] = True
+                        if "FileETag None" in line:
+                            hardening[file]["Etag"] = True
+                        if "TraceEnable off" in line:
+                            hardening[file]["TraceReq"] = True
+                        if "Header edit Set-Cookie ^(.*)$ $1;HttpOnly;Secure" in line:
+                            hardening[file]["CookieProtection"] = True
+                        if "Header always append X-Frame-Options SAMEORIGIN" in line:
+                            hardening[file]["ClickJacking Attack"] = True
+                        if 'Header set X-XSS-Protection "1; mode=block"' in line:
+                            hardening[file]["X-XSS protection"] = True
+                        if "SSLCertificateFile" in line or "SSLCertificateKeyFile" in line or "SSLCertificateChainFile" in line:
+                            hardening[file]["SSL"] = True
+                        if "<LimitExcept" in line:
+                            hardening[file]["HTTP Request Methods Restriction"] = True
 
 
-                    if multiline_check:
-                        if browser_listing_flag:
-                            if "Options -Indexes" in line or "Options None" in line:
-                                hardening[file]["Browser Listing"] = True
-                                multiline_check = False
-                                browser_listing_flag = False
-                        elif sys_setting_protection_flag:
-                            if "Options -Indexes" in line or "AllowOverride None" in line:
-                                hardening[file]["System Setting Protection"] = True
-                                multiline_check = False
-                                browser_listing_flag = False
+                        if multiline_check:
+                            if browser_listing_flag:
+                                if "Options -Indexes" in line or "Options None" in line:
+                                    hardening[file]["Browser Listing"] = True
+                                    multiline_check = False
+                                    browser_listing_flag = False
+                            elif sys_setting_protection_flag:
+                                if "Options -Indexes" in line or "AllowOverride None" in line:
+                                    hardening[file]["System Setting Protection"] = True
+                                    multiline_check = False
+                                    browser_listing_flag = False
 
-                    if "<Directory /opt/apache/htdocs>" in line:
-                        browser_listing_flag = True
-                        multiline_check = True
-                    
-                    if "<Directory /> " in line:
-                        sys_setting_protection_flag = True
-                        multiline_check = True
+                        if "<Directory /opt/apache/htdocs>" in line:
+                            browser_listing_flag = True
+                            multiline_check = True
+                        
+                        if "<Directory /> " in line:
+                            sys_setting_protection_flag = True
+                            multiline_check = True
         return hardening
-    
 
-    def MySQL(self):
-        return "Linux Mysql"
     
     def PostgreSQL(self):
-        return "Linux Postgresql"
+        postgresql_config_path = input("Specify the configurations Full Path: ")
+        config_files = self.Get_Config_Files(postgresql_config_path, "postgresql")
+        hardening = {}
+
+        if not config_files:
+            print("No configuration files were found in the specified directory")
+            return hardening
+
+        try:
+            for file in config_files:
+                hardening[file] = {"unrestricted_listening":False,
+                                   "ssl":False}
+                
+            with open(file, "r") as conf_file:
+                    lines = conf_file.readlines()
+                    
+                    for line in lines:
+                        if not line.startswith("#"): # if line is commented out then don't evaluate
+                            if "listen_addresses" in line and "*" in line:
+                                hardening[file]["unrestricted_listening"] = True
+                            if re.match("^ssl.*=.*on$", line):
+                                hardening[file]["ssl"] = True
+
+            
+        except Exception as e:
+            print(e)
+
+        return hardening
 
     def Filezilla(self):
         return "Linux Filezilla"
+    
+
+    def Get_Config_Files(self, path, service):
+        config_files = []
+        retry_flag = False
+
+        while True:
+            if retry_flag:
+                path = input(f"Please specify the configuration path for {service} (q to quit): ")
+                if path.lower() == "q":
+                    exit()
+            try:
+                files = [f for f in listdir(path) if isfile(join(path, f))]
+                break
+            except OSError as e:
+                print("The specified path doesn't exist")
+                retry_flag = True
+                continue
+
+        for file in files:
+            match = re.match("^.*\.conf$", file)
+            if match:
+                full_path = join(path, file)
+                config_files.append(full_path)
+        
+      
+        return config_files
+    
