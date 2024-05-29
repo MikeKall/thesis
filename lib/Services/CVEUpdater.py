@@ -9,7 +9,7 @@ import re
 from packaging.version import Version
 from pprint import pprint
 
-class CVEFetcher():
+class CVEUpdater():
     def __init__(self, versions):
         self.versions = versions
     

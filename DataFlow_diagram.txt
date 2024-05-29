@@ -1,0 +1,30 @@
+graph LR
+A[User] --> B{Select assessment type}
+B --> C{main.py}
+C --> D{OSProber.py}
+D --> C
+E --> G{WinConfigScanner.py}
+F --> H{LinuxConfigScanner.py}
+G --> I{Scan target system}
+H --> I{Scan target system}
+I --> J{Configuration data}
+I --> K{Configuration data}
+J --> L{CVEUpdater.py}
+K --> L{CVEUpdater.py}
+C --> |Windows| M{ServiceScanController.py} 
+C --> |Linux| N{ServiceScanController.py}
+M --> O{WinServicesScanner.py}
+N --> P{LinuxServicesScanner.py}
+O --> Q{Scan services}
+P --> Q{Scan services}
+Q --> R{Service data}
+Q --> S{Service data}
+R --> L{CVEUpdater.py}
+S --> L{CVEUpdater.py}
+C --> |User Assessment| T{UserAssessment.py}
+T --> U{User account data}
+L --> C
+U --> C
+C --> V{Process results}
+V --> W{Vulnerability report}
+W --> A

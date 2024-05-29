@@ -1,8 +1,8 @@
 import lib.Services.ServiceScanController as ServiceScanController 
-import lib.os_prober as os_prober
-import lib.Users.assess_users as assess_users
+import lib.OSProber as OSProber
+import lib.Users.UserAssessment as assess_users
 import lib.Configurations.ConfigController as ConfigController
-import lib.Services.CVEFetcher as CVEFetcher
+import lib.Services.CVEUpdater as CVEUpdater
 from pprint import pprint
 import json
 import argparse
@@ -25,7 +25,7 @@ if args.crack_users and not args.wordlist:
 service_trigger = False
 user_trigger = False
 configs_trigger = False
-distro, os = os_prober.os_prober.find_os()
+distro, os = OSProber.os_prober.find_os()
 serviceController_obj = ServiceScanController.ServiceScanController(distro)
 
 if args.services:
@@ -35,7 +35,7 @@ if args.services:
     # Find vulnerable services
     services = serviceController_obj.FindServices()
     versions = serviceController_obj.FindVersions(services)
-    CVESFetcher_obj = CVEFetcher.CVEFetcher(versions)
+    CVESFetcher_obj = CVEUpdater.CVEUpdater(versions)
     vulnerabilities, cache_exists = CVESFetcher_obj.GetVulnerabilities()
     if not cache_exists:
         CVESFetcher_obj.writeTofile(vulnerabilities)
@@ -118,10 +118,6 @@ if args.configurations:
                 pprint(item)
     else:
         print("No hardening tips to recommend")
-
-
-
-
 
 if not service_trigger and not user_trigger and not configs_trigger:
     print("Exiting... Nothing to do")
