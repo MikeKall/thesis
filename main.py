@@ -1,6 +1,6 @@
 import lib.Services.ServiceScanController as ServiceScanController 
 import lib.OSProber as OSProber
-import lib.Users.UserAssessment as assess_users
+import lib.Users.UserAssessmentController as UserAssessController
 import lib.Configurations.ConfigController as ConfigController
 import lib.Services.CVEUpdater as CVEUpdater
 from pprint import pprint
@@ -67,9 +67,9 @@ if args.crack_users:
     user_trigger = True
     print("\n\n\n==== Assessment for local Users ====")
     # Find vulnerable users
-    test_users = assess_users.assess_users(distro, os)
-    local_users = test_users.GetUsers()
-    wordlist = test_users.ReadWordlist(args.wordlist)
+    user_assessment_obj = UserAssessController.UserAssessmentController(distro, os)
+    local_users = user_assessment_obj.GetVulnerableUsers() 
+    wordlist = user_assessment_obj.ReadWordlist(args.wordlist)
     vulnerable_users = {}
     print("\n== Discovered Users ==")
     for user in local_users:
@@ -83,7 +83,7 @@ if args.crack_users:
             stripped_user = user.strip()
             if stripped_user:
                 print(f"Trying passwords for {stripped_user}")
-                success, password = test_users.PassCracker(wordlist, stripped_user)
+                success, password = user_assessment_obj.PassCracker(wordlist, stripped_user)
                 if success:
                     vulnerable_users[stripped_user] = password
                     print(f"\n> Found password\n\n")
@@ -99,7 +99,7 @@ if args.crack_users:
             print(user)
 
         for user in vulnerable_users:
-            group = test_users.PrivilagedGroupsMember(user)
+            group = user_assessment_obj.PrivilagedGroupsMember(user)
         if not group == "-":
             critical_users[user] = group
 
@@ -120,9 +120,4 @@ if args.configurations:
         print("No hardening tips to recommend")
 
 if not service_trigger and not user_trigger and not configs_trigger:
-    print("Exiting... Nothing to do")
-
-
-
-
-        
+    print("Exiting... Nothing to do")        
