@@ -5,7 +5,7 @@ import time
 class WinUserAssessment():
     
     def GetUsers(self):
-        cmd = ['powershell', '-c', 'Get-WmiObject -Class Win32_UserAccount | foreach { $_.Caption }']
+        cmd = ['powershell', '-c', 'Get-cimInstance -Class Win32_UserAccount | foreach { $_.Caption }']
         proc = (subprocess.run(cmd, capture_output=True)).stdout.decode().split("\n")
         local_users = []
         for local_user in proc:
@@ -31,7 +31,7 @@ class WinUserAssessment():
             proc = (subprocess.run(cmd, capture_output=True))
             error = proc.stderr.decode().split("\n")
             output = proc.stdout.decode().split("\n")
-            time.sleep(1) # Depends on how fast the PC is. If it's slow, without a built in delay, there will be false positives
+            time.sleep(1) # Rate limiter to avoid overwhelming the target PC
             if not error[0] and not output[0]:
                 bar.update(100)
                 return True, password
