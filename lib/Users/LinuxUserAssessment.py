@@ -30,7 +30,7 @@ class LinuxUserAssessment():
             cmd = [f"su", "-l", local_user]
             
             proc = subprocess.run(cmd, input=password.encode(), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            time.sleep(1) # Depends on how fast the PC is. If it's slow, without a built in delay, there will be false positives
+            time.sleep(1) # Rate limiter to avoid overwhelming the target PC
             if proc.returncode == 0:
                 bar.update(100)
                 return True, password
