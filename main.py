@@ -4,9 +4,9 @@ import lib.Users.UserAssessmentController as UserAssessController
 import lib.Configurations.ConfigController as ConfigController
 import lib.Services.CVEUpdater as CVEUpdater
 from pprint import pprint
-import json
+import time
 import argparse
-from datetime import datetime
+from datetime import datetime, timedelta
 
 
 # Create script arguments 
@@ -22,13 +22,17 @@ if args.crack_users and not args.wordlist:
     print("Please provide a wordlist")
     exit()
 
+tool_start_time = time.time()
+
 service_trigger = False
 user_trigger = False
 configs_trigger = False
 distro, os = OSProber.os_prober.find_os()
 serviceController_obj = ServiceScanController.ServiceScanController(distro)
 
+
 if args.services:
+    sstart_time = time.time()
     service_trigger = True
     print("==== Assessment for local services ====")
 
@@ -60,10 +64,12 @@ if args.services:
     print(f"== Other Possible Matches ==\n")
     pprint(possible_vulnerabilites)
     
+    serviceScan_duration = time.time() - sstart_time
 
     
 
 if args.crack_users:
+    ustart_time = time.time()
     user_trigger = True
     print("\n\n\n==== Assessment for local Users ====")
     # Find vulnerable users
@@ -107,7 +113,11 @@ if args.crack_users:
         for user, group in critical_users.items():
             print(f"User {user} is a member of {group}")
 
+
+    userScan_duration = time.time() - ustart_time
+
 if args.configurations:
+    cstart_time = time.time()
     configs_trigger = True
     test_configurations = ConfigController.ConfigController(distro, os)
     configuration_results = test_configurations.ChooseConfigs()
@@ -119,5 +129,23 @@ if args.configurations:
     else:
         print("No hardening tips to recommend")
 
+    configsScan_duration = time.time() - cstart_time
+
 if not service_trigger and not user_trigger and not configs_trigger:
     print("Exiting... Nothing to do")        
+
+
+tool_duration = time.time() - tool_start_time
+
+print("===== Execution time =====")
+print(f"Tool execution total time: {tool_duration/60}")
+print(f"Service scan duration: {serviceScan_duration/60}")
+print(f"User scan duration: {userScan_duration/60}")
+print(f"Configurations scan duration: {configsScan_duration/60}")
+print("=========================================================\n\n")
+print("===== Execution time =====")
+print(f"Tool execution total time: {str(timedelta(seconds=tool_duration))}")
+print(f"Service scan duration: {str(timedelta(seconds=serviceScan_duration))}")
+print(f"User scan duration: {str(timedelta(seconds=userScan_duration))}")
+print(f"Configurations scan duration: {str(timedelta(seconds=configsScan_duration))}")
+print()
