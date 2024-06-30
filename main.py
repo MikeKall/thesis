@@ -77,13 +77,25 @@ if args.crack_users:
     local_users = user_assessment_obj.GetVulnerableUsers() 
     wordlist = user_assessment_obj.ReadWordlist(args.wordlist)
     vulnerable_users = {}
+    group = "-"
     print("\n== Discovered Users ==")
     for user in local_users:
         print(user)
 
+    print(f"Do you want to assess all the users? If yes it could take up to {round((len(local_users)*len(wordlist)*2)/120)} hours.(N/y)")
+    print(f"Alternatively you can specify specific users. (type S if you want to add custom users)")
     # local_users = ["TestUser", "UserTest"]
-    print(f"This operation can take up to {round((len(local_users)*len(wordlist)*2)/120)} hours\nAre you sure you want to continue?(N/y)")
-    if input(">") in ["y", "Y"]:
+    user_input = input(">")
+
+    if user_input.lower() in ["s", "y"]:
+        if user_input.lower() == "s":
+            while True:
+                local_users = input("Please provide the usernames seperated by comma (,):\n>")
+                try:
+                    local_users = local_users.split(",")
+                    break
+                except Exception as e:
+                    continue
 
         for user in local_users:
             stripped_user = user.strip()
@@ -97,7 +109,6 @@ if args.crack_users:
                 else:
                     print(f"\n> Couldn't find password\n\n")
 
-
         critical_users = {}
 
         print("\n\n== Vulnerable users Found ==")
@@ -106,12 +117,14 @@ if args.crack_users:
 
         for user in vulnerable_users:
             group = user_assessment_obj.PrivilagedGroupsMember(user)
+        
         if not group == "-":
             critical_users[user] = group
 
         print("\n== High privilaged Users ==")
         for user, group in critical_users.items():
             print(f"User {user} is a member of {group}")
+
 
 
     userScan_duration = time.time() - ustart_time
