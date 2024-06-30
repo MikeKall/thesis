@@ -22,6 +22,6 @@ class ServiceScanController:
         versions = {}
         if self.distro == "windows":
             versions = self.WinServices_obj.GetVersions(services)
-            return versions
         else:
             versions = self.LinuxServices_obj.GetVersions(services)
+        return versions
