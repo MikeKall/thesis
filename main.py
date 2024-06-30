@@ -138,7 +138,7 @@ if not service_trigger and not user_trigger and not configs_trigger:
 tool_duration = time.time() - tool_start_time
 
 
-print("===== Execution time =====")
+print("\n\n===== Execution time =====")
 print(f"Tool execution total time: {str(timedelta(seconds=tool_duration))}")
 if service_trigger:
     print(f"Service scan duration: {str(timedelta(seconds=serviceScan_duration))}")
