@@ -137,15 +137,16 @@ if not service_trigger and not user_trigger and not configs_trigger:
 
 tool_duration = time.time() - tool_start_time
 
-print("===== Execution time =====")
-print(f"Tool execution total time: {tool_duration/60}")
-print(f"Service scan duration: {serviceScan_duration/60}")
-print(f"User scan duration: {userScan_duration/60}")
-print(f"Configurations scan duration: {configsScan_duration/60}")
-print("=========================================================\n\n")
+
 print("===== Execution time =====")
 print(f"Tool execution total time: {str(timedelta(seconds=tool_duration))}")
-print(f"Service scan duration: {str(timedelta(seconds=serviceScan_duration))}")
-print(f"User scan duration: {str(timedelta(seconds=userScan_duration))}")
-print(f"Configurations scan duration: {str(timedelta(seconds=configsScan_duration))}")
+if service_trigger:
+    print(f"Service scan duration: {str(timedelta(seconds=serviceScan_duration))}")
+
+if user_trigger:
+    print(f"User scan duration: {str(timedelta(seconds=userScan_duration))}")
+
+if configs_trigger:
+    print(f"Configurations scan duration: {str(timedelta(seconds=configsScan_duration))}")
+
 print()
