@@ -44,13 +44,17 @@ if args.services:
     if not cache_exists:
         CVESFetcher_obj.writeTofile(vulnerabilities)
         
+    version_count = 0
+    for version in versions.values():
+        if not version == "Unknown":
+            version_count += 1
 
 
     print(f"\n\n== Services ==\n")
-    #pprint(services)
+    pprint(f"{len(services)} services have been discovered")
     print(f"\n\n== Versions ==\n")
-    pprint(versions)
-    print("\n\n== Vulnerabilities ==\n")
+    pprint(f"{version_count} services report their versions")
+    print("\n\n=== Vulnerabilities ===\n")
     #pprint(vulnerabilities)
 
     active_vulnerabilites, possible_vulnerabilites = CVESFetcher_obj.CVEfilter(vulnerabilities)
@@ -69,7 +73,7 @@ if args.services:
     
 
 if args.crack_users:
-    ustart_time = time.time()
+    u1start_time = time.time()
     user_trigger = True
     print("\n\n\n==== Assessment for local Users ====")
     # Find vulnerable users
@@ -81,12 +85,13 @@ if args.crack_users:
     print("\n== Discovered Users ==")
     for user in local_users:
         print(user)
+    u1total_time = time.time() - u1start_time
 
     print(f"Do you want to assess all the users? If yes it could take up to {round((len(local_users)*len(wordlist)*2)/120)} hours.(N/y)")
     print(f"Alternatively you can specify specific users. (type S if you want to add custom users)")
     # local_users = ["TestUser", "UserTest"]
     user_input = input(">")
-
+    
     if user_input.lower() in ["s", "y"]:
         if user_input.lower() == "s":
             while True:
@@ -96,7 +101,8 @@ if args.crack_users:
                     break
                 except Exception as e:
                     continue
-
+        
+        u2start_time = time.time()
         for user in local_users:
             stripped_user = user.strip()
             if stripped_user:
@@ -126,8 +132,8 @@ if args.crack_users:
             print(f"User {user} is a member of {group}")
 
 
-
-    userScan_duration = time.time() - ustart_time
+    u2total_time = time.time() - u2start_time
+    userScan_duration = time.time() - (u1total_time + u2total_time)
 
 if args.configurations:
     cstart_time = time.time()
