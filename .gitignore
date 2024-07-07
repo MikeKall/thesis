@@ -130,4 +130,6 @@ dmypy.json
 # Other files
 *.json
 .vscode
+wordlist
 CachedCVEs*
+commands.txt
