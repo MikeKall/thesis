@@ -1,12 +1,12 @@
 import lib.Services.ServiceScanController as ServiceScanController 
 import lib.OSProber as OSProber
-import lib.Users.UserAssessment as assess_users
+import lib.Users.UserAssessmentController as UserAssessController
 import lib.Configurations.ConfigController as ConfigController
 import lib.Services.CVEUpdater as CVEUpdater
 from pprint import pprint
-import json
+import time
 import argparse
-from datetime import datetime
+from datetime import datetime, timedelta
 
 
 # Create script arguments 
@@ -22,13 +22,17 @@ if args.crack_users and not args.wordlist:
     print("Please provide a wordlist")
     exit()
 
+tool_start_time = time.time()
+
 service_trigger = False
 user_trigger = False
 configs_trigger = False
 distro, os = OSProber.os_prober.find_os()
 serviceController_obj = ServiceScanController.ServiceScanController(distro)
 
+
 if args.services:
+    sstart_time = time.time()
     service_trigger = True
     print("==== Assessment for local services ====")
 
@@ -40,13 +44,17 @@ if args.services:
     if not cache_exists:
         CVESFetcher_obj.writeTofile(vulnerabilities)
         
+    version_count = 0
+    for version in versions.values():
+        if not version == "Unknown":
+            version_count += 1
 
 
     print(f"\n\n== Services ==\n")
-    #pprint(services)
+    pprint(f"{len(services)} services have been discovered")
     print(f"\n\n== Versions ==\n")
-    pprint(versions)
-    print("\n\n== Vulnerabilities ==\n")
+    pprint(f"{version_count} services report their versions")
+    print("\n\n=== Vulnerabilities ===\n")
     #pprint(vulnerabilities)
 
     active_vulnerabilites, possible_vulnerabilites = CVESFetcher_obj.CVEfilter(vulnerabilities)
@@ -60,37 +68,52 @@ if args.services:
     print(f"== Other Possible Matches ==\n")
     pprint(possible_vulnerabilites)
     
+    serviceScan_duration = time.time() - sstart_time
 
     
 
 if args.crack_users:
+    u1start_time = time.time()
     user_trigger = True
     print("\n\n\n==== Assessment for local Users ====")
     # Find vulnerable users
-    test_users = assess_users.assess_users(distro, os)
-    local_users = test_users.GetUsers()
-    wordlist = test_users.ReadWordlist(args.wordlist)
+    user_assessment_obj = UserAssessController.UserAssessmentController(distro, os)
+    local_users = user_assessment_obj.GetVulnerableUsers() 
+    wordlist = user_assessment_obj.ReadWordlist(args.wordlist)
     vulnerable_users = {}
+    group = "-"
     print("\n== Discovered Users ==")
     for user in local_users:
         print(user)
+    u1total_time = time.time() - u1start_time
 
+    print(f"Do you want to assess all the users? If yes it could take up to {round((len(local_users)*len(wordlist)*2)/120)} hours.(N/y)")
+    print(f"Alternatively you can specify specific users. (type S if you want to add custom users)")
     # local_users = ["TestUser", "UserTest"]
-    print(f"This operation can take up to {round((len(local_users)*len(wordlist)*2)/120)} hours\nAre you sure you want to continue?(N/y)")
-    if input(">") in ["y", "Y"]:
-
+    user_input = input(">")
+    
+    if user_input.lower() in ["s", "y"]:
+        if user_input.lower() == "s":
+            while True:
+                local_users = input("Please provide the usernames seperated by comma (,):\n>")
+                try:
+                    local_users = local_users.split(",")
+                    break
+                except Exception as e:
+                    continue
+        
+        u2start_time = time.time()
         for user in local_users:
             stripped_user = user.strip()
             if stripped_user:
                 print(f"Trying passwords for {stripped_user}")
-                success, password = test_users.PassCracker(wordlist, stripped_user)
+                success, password = user_assessment_obj.PassCracker(wordlist, stripped_user)
                 if success:
                     vulnerable_users[stripped_user] = password
-                    print(f"\n> Found password\n\n")
-                    #print(f"> {password}\n")
+                    print(f"\n> Password Found")
+                    print(f"> {password}\n")
                 else:
                     print(f"\n> Couldn't find password\n\n")
-
 
         critical_users = {}
 
@@ -99,15 +122,20 @@ if args.crack_users:
             print(user)
 
         for user in vulnerable_users:
-            group = test_users.PrivilagedGroupsMember(user)
-        if not group == "-":
-            critical_users[user] = group
+            group = user_assessment_obj.PrivilagedGroupsMember(user)        
+            if not group == "-":
+                critical_users[user] = group
 
-        print("\n== High privilaged Users ==")
+        print("\n== Vulnerable High privilaged Users ==")
         for user, group in critical_users.items():
             print(f"User {user} is a member of {group}")
 
+
+    u2total_time = time.time() - u2start_time
+    userScan_duration = u1total_time + u2total_time
+
 if args.configurations:
+    cstart_time = time.time()
     configs_trigger = True
     test_configurations = ConfigController.ConfigController(distro, os)
     configuration_results = test_configurations.ChooseConfigs()
@@ -119,10 +147,24 @@ if args.configurations:
     else:
         print("No hardening tips to recommend")
 
+    configsScan_duration = time.time() - cstart_time
+
 if not service_trigger and not user_trigger and not configs_trigger:
-    print("Exiting... Nothing to do")
+    print("Exiting... Nothing to do")        
 
 
+tool_duration = time.time() - tool_start_time
 
 
-        
+print("\n\n===== Execution time =====")
+print(f"Tool execution total time: {str(timedelta(seconds=tool_duration))}")
+if service_trigger:
+    print(f"Service scan duration: {str(timedelta(seconds=serviceScan_duration))}")
+
+if user_trigger:
+    print(f"User scan duration: {str(timedelta(seconds=userScan_duration))}")
+
+if configs_trigger:
+    print(f"Configurations scan duration: {str(timedelta(seconds=configsScan_duration))}")
+
+print()

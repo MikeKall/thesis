@@ -1,5 +1,5 @@
-import lib.Configurations.LinuxConfigs as LinuxConfigs
-import lib.Configurations.WinConfigs as WinConfigs
+import lib.Configurations.LinuxConfigScanner as LinuxConfigs
+import lib.Configurations.WinConfigScanner as WinConfigs
 
 class ConfigController():
     

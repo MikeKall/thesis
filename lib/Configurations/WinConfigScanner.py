@@ -1,4 +1,3 @@
-import subprocess
 import re
 from pprint import pprint 
 from os import listdir

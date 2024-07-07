@@ -1,5 +1,3 @@
-import subprocess
-import time
 import re
 from pprint import pprint 
 from os import listdir
