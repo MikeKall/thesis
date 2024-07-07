@@ -110,8 +110,8 @@ if args.crack_users:
                 success, password = user_assessment_obj.PassCracker(wordlist, stripped_user)
                 if success:
                     vulnerable_users[stripped_user] = password
-                    print(f"\n> Found password\n\n")
-                    #print(f"> {password}\n")
+                    print(f"\n> Password Found")
+                    print(f"> {password}\n")
                 else:
                     print(f"\n> Couldn't find password\n\n")
 
@@ -122,18 +122,17 @@ if args.crack_users:
             print(user)
 
         for user in vulnerable_users:
-            group = user_assessment_obj.PrivilagedGroupsMember(user)
-        
-        if not group == "-":
-            critical_users[user] = group
+            group = user_assessment_obj.PrivilagedGroupsMember(user)        
+            if not group == "-":
+                critical_users[user] = group
 
-        print("\n== High privilaged Users ==")
+        print("\n== Vulnerable High privilaged Users ==")
         for user, group in critical_users.items():
             print(f"User {user} is a member of {group}")
 
 
     u2total_time = time.time() - u2start_time
-    userScan_duration = time.time() - (u1total_time + u2total_time)
+    userScan_duration = u1total_time + u2total_time
 
 if args.configurations:
     cstart_time = time.time()

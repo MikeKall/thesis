@@ -1,6 +1,7 @@
 import subprocess
 from progressbar import ProgressBar, Percentage, Bar, RotatingMarker, ETA, Timer, AdaptiveETA
 import time
+import re
 
 class WinUserAssessment():
     
@@ -46,12 +47,13 @@ class WinUserAssessment():
         cmd2 = ['powershell', '-c', 'Get-LocalGroupMember -name "Backup Operators" | foreach {$_.Name}']
         admins_members = (subprocess.run(cmd1, capture_output=True)).stdout.decode().split("\n")
         bo_members = (subprocess.run(cmd2, capture_output=True)).stdout.decode().split("\n")
+
         for member in admins_members:
-            if vulnerable_user in member.strip():
+            if vulnerable_user.strip().lower() in member.strip().lower():
                 return "Administrators"
         
         for member in bo_members:
-            if vulnerable_user in member.strip():
+            if vulnerable_user.strip().lower() in member.strip().lower():
                 return "Backup Operators"
         return "-"
     
