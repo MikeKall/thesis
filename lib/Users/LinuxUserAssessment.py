@@ -28,9 +28,9 @@ class LinuxUserAssessment():
         bar = ProgressBar(widgets=widgets, max_value=100).start()
         for password in wordlist:
             cmd = [f"su", "-l", local_user]
-            
             proc = subprocess.run(cmd, input=password.encode(), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            time.sleep(1) # Rate limiter to avoid overwhelming the target PC
+            time.sleep(0.5) # Rate limiter to avoid overwhelming the target PC
+            print(proc.returncode)
             if proc.returncode == 0:
                 bar.update(100)
                 return True, password

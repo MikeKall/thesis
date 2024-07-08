@@ -49,6 +49,7 @@ class CVEUpdater():
             return self.get_CVEs_NIST()
 
     def get_CVEs_NIST(self, versions={}):
+        print("what the fuck")
         vulnerabilities = {}
         auth = HTTPBasicAuth("apiKey", "9a9374cd-04e7-4706-ae4c-fa4855a8f846")
         headers = {"Accept": "application/json"}
@@ -74,6 +75,7 @@ class CVEUpdater():
                 vulnerabilities[service] = data
                 time.sleep(6)
         return vulnerabilities
+        
     
     
     def writeTofile(self, data):
@@ -87,7 +89,6 @@ class CVEUpdater():
         
         for service_name, service_version in self.versions.items():
             while True:
-                
                 # Check if NIST has returned any vulnerabilities for each services
                 try:
                     if not vulnerabilities[service_name]['resultsPerPage'] > 0:
@@ -96,7 +97,7 @@ class CVEUpdater():
                     # if services doesn't exist in the vulnerabilietis dict
                     break
 
-                if not service_version == "Unknown":
+                if                      not service_version == "Unknown":
                     index = 0
                     has_startingVersion = True
                     has_endingVersion = True
@@ -156,4 +157,6 @@ class CVEUpdater():
                     except:
                         pass
                     index += 1
+                else:
+                    break
         return active_vulnerbilities, possible_vulnerabilities
