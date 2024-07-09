@@ -1,11 +1,9 @@
 import subprocess
-from progressbar import ProgressBar, Percentage, Bar, RotatingMarker, ETA, Timer, AdaptiveETA
+from progressbar import ProgressBar, Percentage, Timer, AdaptiveETA
 import time
 import re
 import pam
 import grp
-#from subprocess import Popen, PIPE, STDOUT
-#from pexpect import pxssh
 
 class LinuxUserAssessment():
     
