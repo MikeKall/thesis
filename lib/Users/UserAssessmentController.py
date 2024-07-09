@@ -37,7 +37,7 @@ class UserAssessmentController():
             return self.WinUsers_obj.PrivilagedGroupsMember(user)
         
         elif self.os == "linux":
-            return self.LinuxUsers_obj.PrivilagedGroupsMember(user)
+            return self.LinuxUsers_obj.PrivilagedGroupsMember(user, self.distro)
 
 
     def ReadWordlist(self, wordlist_f):

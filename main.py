@@ -91,7 +91,7 @@ if args.crack_users:
     print(f"Alternatively you can specify specific users. (type S if you want to add custom users)")
     # local_users = ["TestUser", "UserTest"]
     user_input = input(">")
-    
+    u2start_time = time.time() # This var will get overidden. It helps only in case the user want provide a possitive input
     if user_input.lower() in ["s", "y"]:
         if user_input.lower() == "s":
             while True:
