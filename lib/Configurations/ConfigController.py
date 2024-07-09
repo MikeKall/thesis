@@ -13,14 +13,20 @@ class ConfigController():
 
     def ChooseConfigs(self):
         results = list
-        services_dict = {"1":"Apache", 
-                         "2":"PostgreSQL", 
-                         "3":"Filezilla"
+        if self.os == "windows":
+            services_dict = {"1":"Apache", 
+                             "2":"PostgreSQL"
                         }
+        else:
+            services_dict = {"1":"Apache", 
+                             "2":"PostgreSQL",
+                             "3":"Nftables"
+                        }
+            
         for key, value in services_dict.items():
             print(f"{key}. {value}")
 
-        configs2check = input("Choose (for multiple e.g 1,2,3): ")
+        configs2check = input("Choose (for multiple e.g 1,2): ")
         choices = configs2check.split(",")
         if choices:
             results = self.CheckConfigs(choices, services_dict)
@@ -32,34 +38,25 @@ class ConfigController():
         apache = None
         mysql = None
         postgresql = None
-        filezilla = None
+        nftables = None
         for num in choices:
             try:
                 if self.distro == "windows":
                     if services[num] == "Apache":
                         apache = self.WinConfigs_Obj.Apache()
 
-                    if services[num] == "MySQL":
-                        mysql = self.WinConfigs_Obj.MySQL()
-
                     if services[num] == "PostgreSQL":
                         postgresql = self.WinConfigs_Obj.PostgreSQL()
-                    
-                    if services[num] == "Filezilla":
-                        filezilla = self.WinConfigs_Obj.Filezilla()
                 else:
                     if services[num] == "Apache":
                         apache = self.LinuxConfigs_Obj.Apache()
-                    
-                    if services[num] == "MySQL":
-                        mysql = self.LinuxConfigs_Obj.MySQL()
 
                     if services[num] == "PostgreSQL":
                         postgresql = self.LinuxConfigs_Obj.PostgreSQL()
                     
-                    if services[num] == "Filezilla":
-                        filezilla = self.LinuxConfigs_Obj.Filezilla()
+                    if services[num] == "Nftables":
+                        nftables = self.LinuxConfigs_Obj.nftables()
             except:
                 continue
 
-        return apache, mysql, postgresql, filezilla
+        return apache, mysql, postgresql, nftables

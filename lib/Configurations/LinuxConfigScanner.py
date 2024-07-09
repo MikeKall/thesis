@@ -2,6 +2,7 @@ import re
 from pprint import pprint 
 from os import listdir
 from os.path import isfile, join
+import subprocess
 
 class LinuxConfigs():
     
@@ -112,8 +113,34 @@ class LinuxConfigs():
 
         return hardening
 
-    def Filezilla(self):
-        return "Linux Filezilla"
+    def nftables(self):
+        try:
+            result = subprocess.run(['systemctl', 'is-active', 'nftables'], capture_output=True, text=True)
+            is_active = result.stdout.strip() == 'active'
+
+            result = subprocess.run(['nft', 'list', 'ruleset'], capture_output=True, text=True)
+            rules = result.stdout.strip()
+            if rules:
+                bad_rules = self.analyze_rules(rules)
+            else:
+                return is_active, "No rule detected"
+            
+            return is_active, bad_rules
+            
+        except Exception as e:
+            print(f"Error listing nftables rules: {e}")
+            return ""
+
+    def analyze_rules(self, rules):
+        bad_rules = []
+        lines = rules.split('\n')
+        for line in lines:
+            if 'accept' in line and 'ip saddr 0.0.0.0/0' in line and 'ip daddr 0.0.0.0/0' in line:
+                bad_rules.append(line)
+        
+        return bad_rules
+
+
     
 
     def Get_Config_Files(self, path, service):
