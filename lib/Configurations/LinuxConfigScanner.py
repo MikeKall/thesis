@@ -114,34 +114,37 @@ class LinuxConfigs():
         return hardening
 
     def nftables(self):
+        bad_rules = []
         try:
             result = subprocess.run(['systemctl', 'is-active', 'nftables'], capture_output=True, text=True)
             is_active = result.stdout.strip() == 'active'
-
-            result = subprocess.run(['nft', 'list', 'ruleset'], capture_output=True, text=True)
-            rules = result.stdout.strip()
-            if rules:
-                bad_rules = self.analyze_rules(rules)
+            if is_active:
+                result = subprocess.run(['nft', 'list', 'ruleset'], capture_output=True, text=True)
+                rules = result.stdout.strip()
+                if rules:
+                    bad_rules = self.analyze_rules(rules)
+                else:
+                    return is_active, "No rule detected"
             else:
-                return is_active, "No rule detected"
+                is_active = "Nftables is not activated"
+                bad_rules = "No rules detected"
             
+
             return is_active, bad_rules
-            
+
         except Exception as e:
             print(f"Error listing nftables rules: {e}")
-            return ""
+            return False, ""
 
     def analyze_rules(self, rules):
         bad_rules = []
         lines = rules.split('\n')
         for line in lines:
-            if 'accept' in line and 'ip saddr 0.0.0.0/0' in line and 'ip daddr 0.0.0.0/0' in line:
+            if 'accept' in line and 'ip saddr 0.0.0.0/0' in line and 'ip daddr   0.0.0.0/0' in line:
                 bad_rules.append(line)
         
         return bad_rules
 
-
-    
 
     def Get_Config_Files(self, path, service):
         config_files = []
@@ -161,11 +164,10 @@ class LinuxConfigs():
                 continue
 
         for file in files:
-            match = re.match("^.*\.conf$", file)
+            match = re.match(r"^.*\.conf$", file)                       
             if match:
                 full_path = join(path, file)
                 config_files.append(full_path)
         
       
         return config_files
-    

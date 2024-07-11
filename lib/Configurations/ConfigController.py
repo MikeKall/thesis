@@ -34,11 +34,13 @@ class ConfigController():
             results = None
         return results
 
+
     def CheckConfigs(self, choices, services):
         apache = None
         mysql = None
         postgresql = None
         nftables = None
+        
         for num in choices:
             try:
                 if self.distro == "windows":
@@ -55,7 +57,7 @@ class ConfigController():
                         postgresql = self.LinuxConfigs_Obj.PostgreSQL()
                     
                     if services[num] == "Nftables":
-                        nftables = self.LinuxConfigs_Obj.nftables()
+                        nftables  = self.LinuxConfigs_Obj.nftables()
             except:
                 continue
 

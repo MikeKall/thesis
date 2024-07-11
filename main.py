@@ -7,7 +7,8 @@ from pprint import pprint
 import time
 import argparse
 from datetime import datetime, timedelta
-
+import openpyxl
+import shutil
 
 # Create script arguments 
 parser = argparse.ArgumentParser()
@@ -55,7 +56,6 @@ if args.services:
     print(f"\n\n== Versions ==\n")
     pprint(f"{version_count} services report their versions")
     print("\n\n=== Vulnerabilities ===\n")
-    #pprint(vulnerabilities)
 
     active_vulnerabilites, possible_vulnerabilites = CVESFetcher_obj.CVEfilter(vulnerabilities)
     
@@ -138,12 +138,25 @@ if args.configurations:
     cstart_time = time.time()
     configs_trigger = True
     test_configurations = ConfigController.ConfigController(distro, os)
-    configuration_results = test_configurations.ChooseConfigs()
+    apache, mysql, postgresql, nftables = test_configurations.ChooseConfigs()
+    print()
+    if any([apache, mysql, postgresql, nftables]):
+        if apache:
+            for config in apache.keys():
+                print(f"Configuration: {config}")
+                for rules in apache.values():
+                    for rule in rules:
+                        exists = rules[rule] 
+                        if not exists:
+                            print(f"Recommendation: Consider adding \"{rule}\" in the configuration file")
+        if mysql:
+            pprint(mysql)
+        if postgresql:
+            pprint(postgresql)
+        if nftables:
+            print(f"Warning: {nftables[0]}")
+            print(f"Warning: {nftables[1]}")
 
-    if any(configuration_results):
-        for item in configuration_results:
-            if item:
-                pprint(item)
     else:
         print("No hardening tips to recommend")
 
@@ -168,3 +181,25 @@ if configs_trigger:
     print(f"Configurations scan duration: {str(timedelta(seconds=configsScan_duration))}")
 
 print()
+
+
+def create_report(service_name, cve, exploitability, impact, s_version, severity):
+    shutil.copyfile("report_template.xlsx", "report.xlsx")
+
+    wb = openpyxl.load_workbook('report.xlsx')
+    ws = wb.active
+
+    # Write to specific cells
+    ws['A3'] = 'Service Name'
+    ws['B3'].value = service_name            
+    ws['B5'] = cve
+    ws['B6'] = exploitability
+    ws['B7'] = impact
+    ws['B8'] = s_version
+    ws['B9'] = severity
+
+    # Save the workbook
+    wb.save('report.xlsx')
+    print("Specific cells updated and file saved as report.xlsx")
+
+create_report()
