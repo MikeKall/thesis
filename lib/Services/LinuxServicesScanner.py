@@ -28,7 +28,7 @@ class LinuxServicesScanner:
                 .stdout.decode()
                 .split("\n")
             )
-            return services, len(services)
+            return services
         
     def GetVersions(self, services):
         versions = {}

@@ -49,7 +49,6 @@ class CVEUpdater():
             return self.get_CVEs_NIST()
 
     def get_CVEs_NIST(self, versions={}):
-        print("what the fuck")
         vulnerabilities = {}
         auth = HTTPBasicAuth("apiKey", "9a9374cd-04e7-4706-ae4c-fa4855a8f846")
         headers = {"Accept": "application/json"}
