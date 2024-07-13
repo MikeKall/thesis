@@ -28,10 +28,6 @@ class LinuxUserAssessment():
         widgets = ['Progress: ', Percentage(), ' | ', Timer(), ' | ', AdaptiveETA()]
         bar = ProgressBar(widgets=widgets, max_value=100).start()
         for password in wordlist:
-            #cmd = [ "echo", password, "|", "su", "-l", local_user]
-            
-            #subprocess.check_call("lib/Users/executor.sh %s %s" % (str(password), str(local_user)), shell=True)
-            #proc = subprocess.check_output(cmd, shell=True)#, stdout=PIPE, stdin=PIPE, stderr=STDOUT)
             p = pam.pam()
             auth = p.authenticate(local_user, password)
             if auth:
