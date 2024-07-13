@@ -133,4 +133,4 @@ dmypy.json
 wordlist
 CachedCVEs*
 commands.txt
-*xlsx
+report.xlsx
