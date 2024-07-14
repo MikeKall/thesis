@@ -87,7 +87,6 @@ class LinuxConfigs():
         postgresql_config_path = input("Specify the configurations Full Path: ")
         config_files = self.Get_Config_Files(postgresql_config_path, "postgresql")
         hardening = {}
-        
         if not config_files:
             print("No configuration files were found in the specified directory")
             return hardening
@@ -99,24 +98,24 @@ class LinuxConfigs():
                                    "keep_alive": False,
                                    "noauth_connections": False}
                 
-            with open(file, "r") as conf_file:
-                    lines = conf_file.readlines()
-                    for line in lines:
-                        if not line.startswith("#"): # if line is commented out then don't evaluate
-                            if "listen_addresses" in line and "*" in line:
-                                hardening[file]["unrestricted_listening"] = True
-                            if re.match("^ssl.*=.*on", line):
-                                hardening[file]["ssl"] = True
-                            keep_alive = re.match("^tcp_keepalives_idle.*=(.\d+)", line)
-                            if keep_alive:
-                                try:
-                                    if int(keep_alive.group(1).strip()) > 0:
-                                        hardening[file]["keep_alive"] = True
-                                except Exception as e:
-                                    pass
-                            if "trust" in line:
-                                print("correct")
-                                hardening[file]["noauth_connections"] = True
+                with open(file, "r") as conf_file:
+                        lines = conf_file.readlines()
+                        for line in lines:
+                            if not line.startswith("#"): # if line is commented out then don't evaluate
+                                if "listen_addresses" in line and "*" in line:
+                                    hardening[file]["unrestricted_listening"] = True
+                                if re.match("^ssl.*=.*on", line):
+                                    hardening[file]["ssl"] = True
+                                keep_alive = re.match("^tcp_keepalives_idle.*=(.\d+)", line)
+                                if keep_alive:
+                                    try:
+                                        if int(keep_alive.group(1).strip()) > 0:
+                                            hardening[file]["keep_alive"] = True
+                                    except Exception as e:
+                                        pass
+                                if "trust" in line:
+                                    print("correct")
+                                    hardening[file]["noauth_connections"] = True
         except Exception as e:
             print(e)
 
