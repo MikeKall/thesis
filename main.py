@@ -4,10 +4,11 @@ import lib.OSProber as OSProber
 import lib.Users.UserAssessmentController as UserAssessController
 import lib.Configurations.ConfigController as ConfigController
 import lib.Services.CVEUpdater as CVEUpdater
+import lib.Reporter as Reporter
 from pprint import pprint
 import time
 import argparse
-from datetime import datetime, timedelta
+from datetime import timedelta
 import openpyxl
 import shutil
 
@@ -31,6 +32,12 @@ user_trigger = False
 configs_trigger = False
 distro, os = OSProber.os_prober.find_os()
 serviceController_obj = ServiceScanController.ServiceScanController(distro)
+
+active_vulnerabilities = {}
+possible_vulnerabilities = {}
+local_users = []
+critical_users = {}
+vulnerable_users = {}
 
 
 if args.services:
@@ -86,7 +93,7 @@ if args.crack_users:
         print(user)
     u1total_time = time.time() - u1start_time
 
-    print(f"Do you want to assess all the users? If yes it could take up to {round((len(local_users)*len(wordlist)*2)/120)} hours.(N/y)")
+    print(f"Do you want to assess all the users? If yes it could take up to {round((len(local_users)*len(wordlist)*2)/120)} hour(s).(N/y)")
     print(f"Alternatively you can specify specific users. (type S if you want to add custom users)")
     
     user_input = input(">")
@@ -128,7 +135,6 @@ if args.crack_users:
         print("\n== Vulnerable High privilaged Users ==")
         for user, group in critical_users.items():
             print(f"User {user} is a member of {group}")
-
 
     u2total_time = time.time() - u2start_time
     userScan_duration = u1total_time + u2total_time
@@ -199,123 +205,10 @@ if configs_trigger:
 
 print()
 
+reporter_obj = Reporter.Reporter()
 
-def create_services_report(active_service_vulnerabilities, possible_service_vulnerabilities):
-    shutil.copyfile("report_template.xlsx", "report.xlsx")
+reporter_obj.create_services_report(active_vulnerabilities, possible_vulnerabilities)
+reporter_obj.create_user_report(vulnerable_users, critical_users)
+reporter_obj.xlsx_to_pdf("report.xlsx", "report.pdf")
 
-    wb = openpyxl.load_workbook('report.xlsx')
-    ws = wb.active
-    ws[f'B1'].font = openpyxl.styles.Font(bold=True)
-    ws[f'F1'].font = openpyxl.styles.Font(bold=True)
-    ws[f'K1'].font = openpyxl.styles.Font(bold=True)
-    NameLabel_cell = 3
-    SeviceName_cell = 3
-    VulnLabel_cell = 4
-    CVE_cell = 5
-    Exploitability_cell = 6
-    Impact_cell = 7
-    Version_cell = 8
-    Severity_cell = 9
-
-    for service_name in active_service_vulnerabilities:
-        ws.merge_cells(f"B{NameLabel_cell}:C{NameLabel_cell}")
-        ws[f'A{NameLabel_cell}'] = 'Service Name'
-        ws[f'B{VulnLabel_cell}'] = 'Active Vulnerabilities'
-        ws[f'C{VulnLabel_cell}'] = 'Possible Vulnerabilities'
-        ws[f'B{SeviceName_cell}'].value = service_name
-        ws[f'B{CVE_cell}'] = active_service_vulnerabilities[service_name]["CVE"]
-        ws[f'B{Exploitability_cell}'] = active_service_vulnerabilities[service_name]["Exploitability Score"]
-        ws[f'B{Impact_cell}'] = active_service_vulnerabilities[service_name]["Impact Score"]
-        ws[f'B{Version_cell}'] = active_service_vulnerabilities[service_name]["Service Version"]
-        ws[f'B{Severity_cell}'] = active_service_vulnerabilities[service_name]["Severity"]
-        ws[f'A{CVE_cell}'] = "CVE"
-        ws[f'A{Exploitability_cell}'] = "Exploitability Score"
-        ws[f'A{Impact_cell}'] = "Impact Score"
-        ws[f'A{Version_cell}'] = "Service Version"
-        ws[f'A{Severity_cell}'] = "Severity"
-
-         # Allign cells
-        ws[f'A{NameLabel_cell}'].alignment = openpyxl.styles.Alignment(horizontal='left')
-        ws[f'B{VulnLabel_cell}'].alignment = openpyxl.styles.Alignment(horizontal='left')
-        ws[f'C{VulnLabel_cell}'].alignment = openpyxl.styles.Alignment(horizontal='left')
-        ws[f'B{SeviceName_cell}'].alignment = openpyxl.styles.Alignment(horizontal='left')
-        ws[f'C{CVE_cell}'].alignment = openpyxl.styles.Alignment(horizontal='left')
-        ws[f'C{Exploitability_cell}'].alignment = openpyxl.styles.Alignment(horizontal='left')
-        ws[f'C{Impact_cell}'].alignment = openpyxl.styles.Alignment(horizontal='left')
-        ws[f'C{Version_cell}'].alignment = openpyxl.styles.Alignment(horizontal='left')
-        ws[f'C{Severity_cell}'].alignment = openpyxl.styles.Alignment(horizontal='left')
-
-
-        # Bold style
-        ws[f'A{SeviceName_cell}'].font = openpyxl.styles.Font(bold=True)
-        ws[f'B{SeviceName_cell}'].font = openpyxl.styles.Font(bold=True)
-        ws[f'A{CVE_cell}'].font = openpyxl.styles.Font(bold=True)
-        ws[f'A{Exploitability_cell}'].font = openpyxl.styles.Font(bold=True)
-        ws[f'A{Impact_cell}'].font = openpyxl.styles.Font(bold=True)
-        ws[f'A{Version_cell}'].font = openpyxl.styles.Font(bold=True)
-        ws[f'A{Severity_cell}'].font = openpyxl.styles.Font(bold=True)
-
-
-        NameLabel_cell += 8
-        VulnLabel_cell += 8
-        SeviceName_cell += 8
-        CVE_cell += 8
-        Exploitability_cell += 8
-        Impact_cell += 8
-        Version_cell += 8
-        Severity_cell += 8
-    
-    for service_name in possible_service_vulnerabilities:
-        ws.merge_cells(f"B{NameLabel_cell}:C{NameLabel_cell}")
-        ws[f'A{NameLabel_cell}'] = 'Service Name'
-        ws[f'B{VulnLabel_cell}'] = 'Active Vulnerabilities'
-        ws[f'C{VulnLabel_cell}'] = 'Possible Vulnerabilities'
-        ws[f'B{SeviceName_cell}'].value = service_name
-        ws[f'C{CVE_cell}'] = possible_service_vulnerabilities[service_name]["CVE"]
-        ws[f'C{Exploitability_cell}'] = possible_service_vulnerabilities[service_name]["Exploitability Score"]
-        ws[f'C{Impact_cell}'] = possible_service_vulnerabilities[service_name]["Impact Score"]
-        ws[f'C{Version_cell}'] = possible_service_vulnerabilities[service_name]["Service Version"]
-        ws[f'C{Severity_cell}'] = possible_service_vulnerabilities[service_name]["Severity"]
-        ws[f'A{CVE_cell}'] = "CVE"
-        ws[f'A{Exploitability_cell}'] = "Exploitability Score"
-        ws[f'A{Impact_cell}'] = "Impact Score"
-        ws[f'A{Version_cell}'] = "Service Version"
-        ws[f'A{Severity_cell}'] = "Severity"
-
-        # Allign cells
-        ws[f'A{NameLabel_cell}'].alignment = openpyxl.styles.Alignment(horizontal='left')
-        ws[f'B{VulnLabel_cell}'].alignment = openpyxl.styles.Alignment(horizontal='left')
-        ws[f'C{VulnLabel_cell}'].alignment = openpyxl.styles.Alignment(horizontal='left')
-        ws[f'B{SeviceName_cell}'].alignment = openpyxl.styles.Alignment(horizontal='left')
-        ws[f'C{CVE_cell}'].alignment = openpyxl.styles.Alignment(horizontal='left')
-        ws[f'C{Exploitability_cell}'].alignment = openpyxl.styles.Alignment(horizontal='left')
-        ws[f'C{Impact_cell}'].alignment = openpyxl.styles.Alignment(horizontal='left')
-        ws[f'C{Version_cell}'].alignment = openpyxl.styles.Alignment(horizontal='left')
-        ws[f'C{Severity_cell}'].alignment = openpyxl.styles.Alignment(horizontal='left')
-
-        # Bold style
-        ws[f'A{SeviceName_cell}'].font = openpyxl.styles.Font(bold=True)
-        ws[f'B{SeviceName_cell}'].font = openpyxl.styles.Font(bold=True)
-        ws[f'A{CVE_cell}'].font = openpyxl.styles.Font(bold=True)
-        ws[f'A{Exploitability_cell}'].font = openpyxl.styles.Font(bold=True)
-        ws[f'A{Impact_cell}'].font = openpyxl.styles.Font(bold=True)
-        ws[f'A{Version_cell}'].font = openpyxl.styles.Font(bold=True)
-        ws[f'A{Severity_cell}'].font = openpyxl.styles.Font(bold=True)
-
-        NameLabel_cell += 8
-        VulnLabel_cell += 8
-        SeviceName_cell += 8
-        CVE_cell += 8
-        Exploitability_cell += 8
-        Impact_cell += 8
-        Version_cell += 8
-        Severity_cell += 8
-
-    # Save the workbook
-    wb.save('report.xlsx')
-    print("Report file saved as report.xlsx")
-
-
-
-create_services_report(active_vulnerabilities, possible_vulnerabilities)
 
