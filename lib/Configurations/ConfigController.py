@@ -1,14 +1,15 @@
-import lib.Configurations.LinuxConfigScanner as LinuxConfigs
-import lib.Configurations.WinConfigScanner as WinConfigs
-
 class ConfigController():
     
     def __init__(self, distro, os):
         super(ConfigController, self).__init__()
         self.distro = distro
         self.os = os
-        self.LinuxConfigs_Obj = LinuxConfigs.LinuxConfigs(distro)
-        self.WinConfigs_Obj = WinConfigs.WinConfigs()
+        if os == "windows":
+            import lib.Configurations.WinConfigScanner as WinConfigs
+            self.WinConfigs_Obj = WinConfigs.WinConfigs()
+        elif os == "linux":
+            import lib.Configurations.LinuxConfigScanner as LinuxConfigs
+            self.LinuxConfigs_Obj = LinuxConfigs.LinuxConfigs(distro)
 
 
     def ChooseConfigs(self):

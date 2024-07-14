@@ -1,12 +1,15 @@
-import lib.Services.WinServicesScanner as WinServicesScanner
-import lib.Services.LinuxServicesScanner as LinuxServicesScanner
-
 class ServiceScanController:
 
     def __init__(self, distro):
+        if distro == "windows":
+            import lib.Services.WinServicesScanner as WinServicesScanner
+            self.WinServices_obj = WinServicesScanner.WinServicesScanner()
+        elif distro in ["rh", "debian"]:
+            import lib.Services.LinuxServicesScanner as LinuxServicesScanner
+            self.LinuxServices_obj = LinuxServicesScanner.LinuxServicesScanner(distro)
+    
         self.distro = distro
-        self.WinServices_obj = WinServicesScanner.WinServicesScanner()
-        self.LinuxServices_obj = LinuxServicesScanner.LinuxServicesScanner(distro)
+        
 
     
     def FindServices(self):
