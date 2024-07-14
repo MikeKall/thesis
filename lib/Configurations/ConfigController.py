@@ -58,7 +58,7 @@ class ConfigController():
                     
                     if services[num] == "Nftables":
                         nftables  = self.LinuxConfigs_Obj.nftables()
-            except:
+            except Exception as e:
                 continue
 
         return apache, mysql, postgresql, nftables

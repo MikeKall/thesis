@@ -143,16 +143,34 @@ if args.configurations:
     if any([apache, mysql, postgresql, nftables]):
         if apache:
             for config in apache.keys():
-                print(f"Configuration: {config}")
-                for rules in apache.values():
-                    for rule in rules:
-                        exists = rules[rule] 
-                        if not exists:
-                            print(f"Recommendation: Consider adding \"{rule}\" in the configuration file")
+                print(f"\nConfiguration: {config}")
+                for rule in apache[config]:
+                    exists = apache[config][rule]
+                    if not exists:
+                        print(f"Recommendation: Consider adding \"{rule}\" in the configuration file")
         if mysql:
             pprint(mysql)
         if postgresql:
-            pprint(postgresql)
+            for config in postgresql.keys():
+                points = 0
+                print(f"\nConfiguration: {config}")
+                for rule in postgresql[config]:
+                    exists = postgresql[config][rule]
+                    if rule == "noauth_connections" and exists:
+                        points += 1
+                        print(f"Warning: The configuration file allows connections without authentication")    
+                    elif rule == "unrestricted_listening" and exists:
+                        points += 1
+                        print(f"Warning: The configuration file allows connections from anywhere")
+                    elif rule == "ssl" and not exists:
+                        points += 1
+                        print(f"Recommendation: Consider adding \"{rule}\" in the configuration file")
+                    elif rule == "keep_alive" and not exists:
+                        points += 1
+                        print(f"Recommendation: Consider adding \"{rule}\" in the configuration file")
+                if points == 0:
+                    print("File is well configured")
+
         if nftables:
             print(f"Warning: {nftables[0]}")
             print(f"Warning: {nftables[1]}")
@@ -202,4 +220,5 @@ def create_report(service_name, cve, exploitability, impact, s_version, severity
     wb.save('report.xlsx')
     print("Specific cells updated and file saved as report.xlsx")
 
-create_report()
+#create_report()
+
