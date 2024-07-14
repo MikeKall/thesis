@@ -29,16 +29,20 @@ class CVEUpdater():
                             self.get_CVEs_NIST({service:version})
 
                     return cached_vulnerabilities, cached
-        
-        return self.get_CVEs_NIST(), cached
+        else:
+            vulnerabilities = self.get_CVEs_NIST()
+            self.writeTofile(vulnerabilities)
+
+        return vulnerabilities, cached
 
     def get_CVEs_Local(self, cached_cves_f):
         pattern = r"(\d.*?).json"
         match = re.search(pattern, cached_cves_f)
         date_str = match.group(1)
         current_dtime = datetime.today().strftime('%Y_%m_%d')
-        file_date = datetime.strptime(date_str, "%Y_%m_%d")
         current_dtime = datetime.strptime(current_dtime, "%Y_%m_%d")
+        file_date = datetime.strptime(date_str, "%Y_%m_%d")
+        
         
         delta = current_dtime - file_date
         if delta.days < 7:
@@ -46,7 +50,12 @@ class CVEUpdater():
                 loaded_json = json.load(f)    
             return loaded_json
         else:
-            return self.get_CVEs_NIST()
+            print("Cache file is outdated.")
+            print("Retrieving new data... Please wait ")
+            os.remove(cached_cves_f)
+            vulnerabilities = self.get_CVEs_NIST()
+            self.writeTofile(vulnerabilities)
+            return vulnerabilities
 
     def get_CVEs_NIST(self, versions={}):
         vulnerabilities = {}
@@ -73,6 +82,7 @@ class CVEUpdater():
                     data = json.loads(response.text)
                 vulnerabilities[service] = data
                 time.sleep(6)
+
         return vulnerabilities
         
     
