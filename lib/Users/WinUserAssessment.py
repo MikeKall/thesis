@@ -1,7 +1,6 @@
 import subprocess
-from progressbar import ProgressBar, Percentage, Bar, RotatingMarker, ETA, Timer, AdaptiveETA
+from progressbar import ProgressBar, Percentage, Timer, AdaptiveETA
 import time
-import re
 
 class WinUserAssessment():
     

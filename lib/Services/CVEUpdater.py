@@ -7,38 +7,42 @@ import os
 from os.path import exists
 import re
 from packaging.version import Version
-from pprint import pprint
 
 class CVEUpdater():
     def __init__(self, versions):
         self.versions = versions
     
     def GetVulnerabilities(self):
-        cached = False
         cached_cves_f = [pos_json for pos_json in os.listdir('.') if pos_json.startswith('CachedCVEs')]
         if cached_cves_f:
             if exists(cached_cves_f[0]):
                 if not os.stat(cached_cves_f[0]).st_size == 0:
                     print("Cached file found")
-                    cached = True
                     cached_vulnerabilities = self.get_CVEs_Local(cached_cves_f[0])
+                    new_vulnerabilities = {}
 
                     # Check if there is a new service that doesn't exist in the cached file
                     for service, version in self.versions.items():
                         if  not version == "Unknown" and not service in cached_vulnerabilities.keys():
-                            self.get_CVEs_NIST({service:version})
+                            new_vulnerabilities = self.get_CVEs_NIST({service:version})
 
-                    return cached_vulnerabilities, cached
-        
-        return self.get_CVEs_NIST(), cached
+                    all_vulnerabilities =  cached_vulnerabilities | new_vulnerabilities
+                    
+                    return all_vulnerabilities
+        else:
+            vulnerabilities = self.get_CVEs_NIST()
+            self.writeTofile(vulnerabilities)
+
+        return vulnerabilities
 
     def get_CVEs_Local(self, cached_cves_f):
         pattern = r"(\d.*?).json"
         match = re.search(pattern, cached_cves_f)
         date_str = match.group(1)
         current_dtime = datetime.today().strftime('%Y_%m_%d')
-        file_date = datetime.strptime(date_str, "%Y_%m_%d")
         current_dtime = datetime.strptime(current_dtime, "%Y_%m_%d")
+        file_date = datetime.strptime(date_str, "%Y_%m_%d")
+        
         
         delta = current_dtime - file_date
         if delta.days < 7:
@@ -46,7 +50,12 @@ class CVEUpdater():
                 loaded_json = json.load(f)    
             return loaded_json
         else:
-            return self.get_CVEs_NIST()
+            print("Cache file is outdated.")
+            print("Retrieving new data... Please wait ")
+            os.remove(cached_cves_f)
+            vulnerabilities = self.get_CVEs_NIST()
+            self.writeTofile(vulnerabilities)
+            return vulnerabilities
 
     def get_CVEs_NIST(self, versions={}):
         vulnerabilities = {}
@@ -73,7 +82,9 @@ class CVEUpdater():
                     data = json.loads(response.text)
                 vulnerabilities[service] = data
                 time.sleep(6)
+
         return vulnerabilities
+        
     
     
     def writeTofile(self, data):
@@ -87,7 +98,6 @@ class CVEUpdater():
         
         for service_name, service_version in self.versions.items():
             while True:
-                
                 # Check if NIST has returned any vulnerabilities for each services
                 try:
                     if not vulnerabilities[service_name]['resultsPerPage'] > 0:
@@ -96,7 +106,7 @@ class CVEUpdater():
                     # if services doesn't exist in the vulnerabilietis dict
                     break
 
-                if not service_version == "Unknown":
+                if                      not service_version == "Unknown":
                     index = 0
                     has_startingVersion = True
                     has_endingVersion = True
@@ -156,4 +166,6 @@ class CVEUpdater():
                     except:
                         pass
                     index += 1
+                else:
+                    break
         return active_vulnerbilities, possible_vulnerabilities

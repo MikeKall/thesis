@@ -3,10 +3,11 @@ import lib.OSProber as OSProber
 import lib.Users.UserAssessmentController as UserAssessController
 import lib.Configurations.ConfigController as ConfigController
 import lib.Services.CVEUpdater as CVEUpdater
+import lib.Reporter as Reporter
 from pprint import pprint
 import time
 import argparse
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 
 # Create script arguments 
@@ -30,6 +31,12 @@ configs_trigger = False
 distro, os = OSProber.os_prober.find_os()
 serviceController_obj = ServiceScanController.ServiceScanController(distro)
 
+active_vulnerabilities = {}
+possible_vulnerabilities = {}
+local_users = []
+critical_users = {}
+vulnerable_users = {}
+configurations = []
 
 if args.services:
     sstart_time = time.time()
@@ -40,9 +47,7 @@ if args.services:
     services = serviceController_obj.FindServices()
     versions = serviceController_obj.FindVersions(services)
     CVESFetcher_obj = CVEUpdater.CVEUpdater(versions)
-    vulnerabilities, cache_exists = CVESFetcher_obj.GetVulnerabilities()
-    if not cache_exists:
-        CVESFetcher_obj.writeTofile(vulnerabilities)
+    vulnerabilities = CVESFetcher_obj.GetVulnerabilities()
         
     version_count = 0
     for version in versions.values():
@@ -55,18 +60,17 @@ if args.services:
     print(f"\n\n== Versions ==\n")
     pprint(f"{version_count} services report their versions")
     print("\n\n=== Vulnerabilities ===\n")
-    #pprint(vulnerabilities)
 
-    active_vulnerabilites, possible_vulnerabilites = CVESFetcher_obj.CVEfilter(vulnerabilities)
+    active_vulnerabilities, possible_vulnerabilities = CVESFetcher_obj.CVEfilter(vulnerabilities)
     
     print(f"== Active ==\n")
-    if not active_vulnerabilites: # if dictionary is empty
+    if not active_vulnerabilities: # if dictionary is empty
         print("None found")
         print("")
     else:
-        pprint(active_vulnerabilites)
+        pprint(active_vulnerabilities)
     print(f"== Other Possible Matches ==\n")
-    pprint(possible_vulnerabilites)
+    pprint(possible_vulnerabilities)
     
     serviceScan_duration = time.time() - sstart_time
 
@@ -87,11 +91,11 @@ if args.crack_users:
         print(user)
     u1total_time = time.time() - u1start_time
 
-    print(f"Do you want to assess all the users? If yes it could take up to {round((len(local_users)*len(wordlist)*2)/120)} hours.(N/y)")
+    print(f"Do you want to assess all the users? If yes it could take up to {round((len(local_users)*len(wordlist)*2)/120)} hour(s).(N/y)")
     print(f"Alternatively you can specify specific users. (type S if you want to add custom users)")
-    # local_users = ["TestUser", "UserTest"]
-    user_input = input(">")
     
+    user_input = input(">")
+    u2start_time = time.time() # This var will get overidden. It helps only in case the user want provide a possitive input
     if user_input.lower() in ["s", "y"]:
         if user_input.lower() == "s":
             while True:
@@ -130,20 +134,80 @@ if args.crack_users:
         for user, group in critical_users.items():
             print(f"User {user} is a member of {group}")
 
-
     u2total_time = time.time() - u2start_time
     userScan_duration = u1total_time + u2total_time
 
 if args.configurations:
     cstart_time = time.time()
+    print("\n\n\n==== Configuration Assessment ====")
     configs_trigger = True
     test_configurations = ConfigController.ConfigController(distro, os)
-    configuration_results = test_configurations.ChooseConfigs()
+    apache, postgresql, nftables, registry, filezilla = test_configurations.ChooseConfigs()
+    configurations = {"Registry": registry, "Apache": apache, "Postgresql":postgresql, "Nftables":nftables, "Filezilla":filezilla}
+    print()
+    if any([registry, apache, postgresql, nftables, filezilla]):
+        
+        if filezilla:
+            print("Filezilla configurations")
+            for config in filezilla.keys():
+                print(f"\nConfiguration: {config}")
+                for rule in filezilla[config]:
+                    exists = filezilla[config][rule]
 
-    if any(configuration_results):
-        for item in configuration_results:
-            if item:
-                pprint(item)
+                    if rule == "DirList" and exists:
+                        print(f"Warning: Consider removing \"{rule}\" from the configuration file")
+                        filezilla[config][rule]  = f"Warning: Consider removing \"{rule}\" from the configuration file"
+                    elif rule == "MinPasswordLen" and not exists:
+                        print(f"Warning: Please set the password minimum length to >12")
+                        filezilla[config][rule]  = f"Warning: Please set the password minimum length to >12"
+                    elif not exists and not rule in ["DirList"]:
+                        print(f"Consider adding \"{rule}\" in the configuration file")
+                        filezilla[config][rule]  = f"Consider adding \"{rule}\" in the configuration file"
+            
+        if registry:
+            print("Registry needs review")
+            pprint(registry)
+        
+        if apache:
+            print("Apache configurations")
+            for config in apache.keys():
+                print(f"\nConfiguration: {config}")
+                for rule in apache[config]:
+                    exists = apache[config][rule]
+                    if not exists:
+                        print(f"Consider adding \"{rule}\" in the configuration file")
+                        apache[config][rule]  = f"Consider adding \"{rule}\" in the configuration file"
+        if postgresql:
+            print("Postgresql configurations")
+            for config in postgresql.keys():
+                points = 0
+                print(f"\nConfiguration: {config}")
+                for rule in postgresql[config]:
+                    exists = postgresql[config][rule]
+                    if rule == "noauth_connections" and exists:
+                        points += 1
+                        print(f"Warning: The configuration file allows connections without authentication")
+                        postgresql[config][rule] = "Warning: The configuration file allows connections without authentication"
+                    elif rule == "unrestricted_listening" and exists:
+                        points += 1
+                        print(f"Warning: The configuration file allows connections from anywhere")
+                        postgresql[config][rule] = "Warning: The configuration file allows connections from anywhere"
+                    elif rule == "ssl" and not exists:
+                        points += 1
+                        print(f"Consider adding \"{rule}\" in the configuration file")
+                        postgresql[config][rule] = f"Consider adding \"{rule}\" in the configuration file"
+                    elif rule == "keep_alive" and not exists:
+                        points += 1
+                        print(f"Consider adding \"{rule}\" in the configuration file")
+                        postgresql[config][rule] = f"Consider adding \"{rule}\" in the configuration file"
+                if points == 0:
+                    print("File is well configured")
+
+        if nftables:
+            print("Nftables configurations")
+            print(f"Warning: {nftables[0]}")
+            print(f"Warning: {nftables[1]}")
+
     else:
         print("No hardening tips to recommend")
 
@@ -168,3 +232,12 @@ if configs_trigger:
     print(f"Configurations scan duration: {str(timedelta(seconds=configsScan_duration))}")
 
 print()
+
+xlsx_file = "report.xlsx"
+pdf_file = "report.pdf"
+reporter_obj = Reporter.Reporter(xlsx_file)
+reporter_obj.create_services_report(active_vulnerabilities, possible_vulnerabilities)
+reporter_obj.create_user_report(vulnerable_users, critical_users)
+reporter_obj.create_conf_report(configurations)
+reporter_obj.xlsx_to_pdf(pdf_file)
+print(f"Report files {xlsx_file} and {pdf_file} have been created")

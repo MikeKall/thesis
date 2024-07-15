@@ -1,6 +1,4 @@
 import subprocess
-import lib.Users.WinUserAssessment as WinUserAssessment
-import lib.Users.LinuxUserAssessment as LinuxUserAssessment
 import re
 
 class UserAssessmentController():
@@ -8,8 +6,13 @@ class UserAssessmentController():
     def __init__(self, distro, os):
         self.distro = distro
         self.os = os
-        self.WinUsers_obj = WinUserAssessment.WinUserAssessment()
-        self.LinuxUsers_obj = LinuxUserAssessment.LinuxUserAssessment()
+
+        if os == "windows":
+            import lib.Users.WinUserAssessment as WinUserAssessment
+            self.WinUsers_obj = WinUserAssessment.WinUserAssessment()
+        elif os == "linux":
+            import lib.Users.LinuxUserAssessment as LinuxUserAssessment
+            self.LinuxUsers_obj = LinuxUserAssessment.LinuxUserAssessment()
 
     def GetVulnerableUsers(self):
         local_users = []
@@ -37,7 +40,7 @@ class UserAssessmentController():
             return self.WinUsers_obj.PrivilagedGroupsMember(user)
         
         elif self.os == "linux":
-            return self.LinuxUsers_obj.PrivilagedGroupsMember(user)
+            return self.LinuxUsers_obj.PrivilagedGroupsMember(user, self.distro)
 
 
     def ReadWordlist(self, wordlist_f):

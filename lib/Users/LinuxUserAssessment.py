@@ -1,7 +1,9 @@
 import subprocess
-from progressbar import ProgressBar, Percentage, Bar, RotatingMarker, ETA, Timer, AdaptiveETA
+from progressbar import ProgressBar, Percentage, Timer, AdaptiveETA
 import time
 import re
+import pam
+import grp
 
 class LinuxUserAssessment():
     
@@ -21,27 +23,41 @@ class LinuxUserAssessment():
         #
         # yescript
         #
-
         length = len(wordlist)
         count = 0
         widgets = ['Progress: ', Percentage(), ' | ', Timer(), ' | ', AdaptiveETA()]
         bar = ProgressBar(widgets=widgets, max_value=100).start()
         for password in wordlist:
-            cmd = [f"su", "-l", local_user]
-            
-            proc = subprocess.run(cmd, input=password.encode(), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            time.sleep(1) # Rate limiter to avoid overwhelming the target PC
-            if proc.returncode == 0:
+            p = pam.pam()
+            auth = p.authenticate(local_user, password)
+            if auth:
                 bar.update(100)
                 return True, password
+            time.sleep(0.5) # Rate limiter to avoid overwhelming the target PC
             
             count+=1
             bar.update(self.TranslateTo100(count, length))
 
         return False, password
   
-    def PrivilagedGroupsMember(self, vulnerable_user):
-        return "-"
+    def PrivilagedGroupsMember(self, vulnerable_user, distro):
+        if distro == "rh":
+            try:
+                sudoers = grp.getgrnam("wheel").gr_mem
+                if vulnerable_user in sudoers:
+                    return "wheel"
+            except KeyError:
+                # Group 'wheel' does not exist
+                return "-"
+        else:
+            try:
+                sudoers = grp.getgrnam("sudo").gr_mem
+                if vulnerable_user in sudoers:
+                    return "sudoers"
+            except KeyError:
+                # Group 'sudo   ' does not exist
+                return "-"
+        return "-"  
 
 
 
