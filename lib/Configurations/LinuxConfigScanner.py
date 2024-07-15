@@ -125,15 +125,16 @@ class LinuxConfigs():
         try:
             result = subprocess.run(['systemctl', 'is-active', 'nftables'], capture_output=True, text=True)
             is_active = result.stdout.strip() == 'active'
+            print(is_active)
             if is_active:
                 result = subprocess.run(['nft', 'list', 'ruleset'], capture_output=True, text=True)
                 rules = result.stdout.strip()
+                print(rules)
                 if rules:
                     bad_rules = self.analyze_rules(rules)
                 else:
                     return is_active, "No rule detected"
             else:
-                is_active = "Nftables is not activated"
                 bad_rules = "No rules detected"
             
 
@@ -147,8 +148,10 @@ class LinuxConfigs():
         bad_rules = []
         lines = rules.split('\n')
         for line in lines:
-            if 'accept' in line and 'ip saddr 0.0.0.0/0' in line and 'ip daddr   0.0.0.0/0' in line:
-                bad_rules.append(line)
+            if 'accept' in line and 'ip saddr 0.0.0.0/0' in line and 'ip daddr 0.0.0.0/0' in line:
+                bad_rules.append(line.strip())
+            elif 'accept' in line and 'ip saddr 0.0.0.0/0' in line:
+                bad_rules.append(line.strip())
         
         return bad_rules
 

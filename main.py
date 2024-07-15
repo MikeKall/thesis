@@ -163,7 +163,7 @@ if args.configurations:
                     elif not exists and not rule in ["DirList"]:
                         print(f"Consider adding \"{rule}\" in the configuration file")
                         filezilla[config][rule]  = f"Consider adding \"{rule}\" in the configuration file"
-            
+
         if registry:
             print("Registry needs review")
             pprint(registry)
@@ -205,7 +205,9 @@ if args.configurations:
 
         if nftables:
             print("Nftables configurations")
-            print(f"Warning: {nftables[0]}")
+
+            if nftables[0]:
+                print(f"Warning: Active {nftables[0]}")
             print(f"Warning: {nftables[1]}")
 
     else:
@@ -239,5 +241,5 @@ reporter_obj = Reporter.Reporter(xlsx_file)
 reporter_obj.create_services_report(active_vulnerabilities, possible_vulnerabilities)
 reporter_obj.create_user_report(vulnerable_users, critical_users)
 reporter_obj.create_conf_report(configurations)
-reporter_obj.xlsx_to_pdf(pdf_file)
-print(f"Report files {xlsx_file} and {pdf_file} have been created")
+
+reporter_obj.xlsx_to_pdf(pdf_file, os)
