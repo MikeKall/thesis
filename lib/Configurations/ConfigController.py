@@ -16,7 +16,8 @@ class ConfigController():
         results = list
         if self.os == "windows":
             services_dict = {"1":"Apache", 
-                             "2":"PostgreSQL"
+                             "2":"PostgreSQL",
+                             "3":"Registry"
                         }
         else:
             services_dict = {"1":"Apache", 
@@ -38,18 +39,22 @@ class ConfigController():
 
     def CheckConfigs(self, choices, services):
         apache = None
-        mysql = None
         postgresql = None
         nftables = None
-        
+        registry = None
+
         for num in choices:
             try:
                 if self.distro == "windows":
+                    if services[num] == "Registry":
+                        registry = self.WinConfigs_Obj.Registry()
+
                     if services[num] == "Apache":
                         apache = self.WinConfigs_Obj.Apache()
 
                     if services[num] == "PostgreSQL":
                         postgresql = self.WinConfigs_Obj.PostgreSQL()
+                    
                 else:
                     if services[num] == "Apache":
                         apache = self.LinuxConfigs_Obj.Apache()
@@ -62,4 +67,4 @@ class ConfigController():
             except Exception as e:
                 continue
 
-        return apache, mysql, postgresql, nftables
+        return apache, postgresql, nftables, registry

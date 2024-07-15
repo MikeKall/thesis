@@ -14,26 +14,27 @@ class CVEUpdater():
         self.versions = versions
     
     def GetVulnerabilities(self):
-        cached = False
         cached_cves_f = [pos_json for pos_json in os.listdir('.') if pos_json.startswith('CachedCVEs')]
         if cached_cves_f:
             if exists(cached_cves_f[0]):
                 if not os.stat(cached_cves_f[0]).st_size == 0:
                     print("Cached file found")
-                    cached = True
                     cached_vulnerabilities = self.get_CVEs_Local(cached_cves_f[0])
+                    new_vulnerabilities = {}
 
                     # Check if there is a new service that doesn't exist in the cached file
                     for service, version in self.versions.items():
                         if  not version == "Unknown" and not service in cached_vulnerabilities.keys():
-                            self.get_CVEs_NIST({service:version})
+                            new_vulnerabilities = self.get_CVEs_NIST({service:version})
 
-                    return cached_vulnerabilities, cached
+                    all_vulnerabilities =  cached_vulnerabilities | new_vulnerabilities
+                    
+                    return all_vulnerabilities
         else:
             vulnerabilities = self.get_CVEs_NIST()
             self.writeTofile(vulnerabilities)
 
-        return vulnerabilities, cached
+        return vulnerabilities
 
     def get_CVEs_Local(self, cached_cves_f):
         pattern = r"(\d.*?).json"

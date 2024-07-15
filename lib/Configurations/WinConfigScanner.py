@@ -2,11 +2,34 @@ import re
 from pprint import pprint 
 from os import listdir
 from os.path import isfile, join
+import winreg
 
 class WinConfigs():
     
     def __init__(self):
         super(WinConfigs, self).__init__()
+
+
+    def Registry(self):
+        reg_keys = {"SOFTWARE\Microsoft\Windows\CurrentVersion\Run": None}
+        values = []
+        try:
+            i = 0
+            for reg_key in reg_keys: 
+                with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, reg_key) as key:
+                    while True:
+                        try:
+                            name, value, type = winreg.EnumValue(key, i)
+                            values.append(value)
+                            i += 1
+                        except OSError:
+                            break
+                    reg_keys[reg_key] = values
+                    values = []
+        except OSError as e:
+            print(f"Failed to access {reg_key}: {e}")
+        
+        return reg_keys
 
 
     def Apache(self):
@@ -113,9 +136,6 @@ class WinConfigs():
 
         return hardening
 
-    def Filezila(self):
-        return "Windows Filezila"
-    
 
     def Get_Config_Files(self, path, service):
         config_files = []
