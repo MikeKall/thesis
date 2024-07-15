@@ -26,36 +26,30 @@ class WinConfigs():
                 
             with open(file, "r") as conf_file:
                     lines = conf_file.readlines()
-                    
                     for line in lines:
-                        if not line.startswith("#"): # if line is commented out then don't evaluate
-                            MinPassLen = re.match("^MinPasswordLen.*=(.\d+)", line)
-                            TLSRequired = re.match("^TLSRequired.*=(.\d+)", line)
-                            DirList = re.match("^DirList.*=.*on", line)
+                        line = line.strip()
+                        MinPassLen = re.match(r"MinPasswordLen.*=(.\d+)", line)
+                        TLSRequired = re.match(r"TLSRequired.*=(.\d+)", line)
+                        DirList = re.match(r"DirList.*=.*(on)", line)
+                        if TLSRequired:
+                            try:
+                                if int(TLSRequired.group(1).strip()) != 0:
+                                    hardening[file]["TLSRequired"] = True
+                            except Exception as e:
+                                pass
 
-                            if TLSRequired:
-                                try:
-                                    if int(TLSRequired.group(1).strip()) != 0:
-                                        hardening[file]["TLSRequired"] = True
-                                except Exception as e:
-                                    pass
+                        if MinPassLen:
+                            try:
+                                if int(MinPassLen.group(1).strip()) > 12:
+                                    hardening[file]["MinPasswordLen"] = True
+                            except Exception as e:
+                                pass   
+                                                                
+                        if "MaxClients" in line:
+                            hardening[file]["MaxClients"] = True
 
-                            if MinPassLen:
-                                try:
-                                    if int(MinPassLen.group(1).strip()) > 12:
-                                        hardening[file]["MinPasswordLen"] = True
-                                except Exception as e:
-                                    pass   
-                                                                 
-                            if "MaxClients" in line:
-                                hardening[file]["MaxClients"] = True
-
-                            if DirList:
-                                try:
-                                    if int(DirList.group(1).strip()) == "on":
-                                        hardening[file]["DirList"] = True
-                                except Exception as e:
-                                    pass           
+                        if DirList:
+                            hardening[file]["DirList"] = True
 
         except Exception as e:
             print(e)
@@ -184,6 +178,7 @@ class WinConfigs():
                     lines = conf_file.readlines()
                     
                     for line in lines:
+                        line = line.strip()
                         if not line.startswith("#"): # if line is commented out then don't evaluate
                             if "listen_addresses" in line and "*" in line:
                                 hardening[file]["unrestricted_listening"] = True

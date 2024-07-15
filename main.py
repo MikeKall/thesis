@@ -154,20 +154,16 @@ if args.configurations:
                 for rule in filezilla[config]:
                     exists = filezilla[config][rule]
 
-                    if rule == "DirList" and not exists:
+                    if rule == "DirList" and exists:
                         print(f"Warning: Consider removing \"{rule}\" from the configuration file")
                         filezilla[config][rule]  = f"Warning: Consider removing \"{rule}\" from the configuration file"
                     elif rule == "MinPasswordLen" and not exists:
                         print(f"Warning: Please set the password minimum length to >12")
                         filezilla[config][rule]  = f"Warning: Please set the password minimum length to >12"
-                    elif not exists:
+                    elif not exists and not rule in ["DirList"]:
                         print(f"Consider adding \"{rule}\" in the configuration file")
                         filezilla[config][rule]  = f"Consider adding \"{rule}\" in the configuration file"
-
-
-
-
-
+            
         if registry:
             print("Registry needs review")
             pprint(registry)
