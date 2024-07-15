@@ -9,18 +9,78 @@ class WinConfigs():
     def __init__(self):
         super(WinConfigs, self).__init__()
 
+    def Filezilla(self):
+        postgresql_config_path = input("Please specify the configuration path for filezilla: ")
+        config_files = self.Get_Config_Files(postgresql_config_path, "filezilla", "xml")
+        hardening = {}
+        if not config_files:
+            print("No configuration files were found in the specified directory")
+            return hardening
+        
+        try:
+            for file in config_files:
+                hardening[file] = {"MinPasswordLen": False,
+                                   "TLSRequired": False,
+                                   "MaxClients": False,
+                                   "DirList": False}
+                
+            with open(file, "r") as conf_file:
+                    lines = conf_file.readlines()
+                    
+                    for line in lines:
+                        if not line.startswith("#"): # if line is commented out then don't evaluate
+                            MinPassLen = re.match("^MinPasswordLen.*=(.\d+)", line)
+                            TLSRequired = re.match("^TLSRequired.*=(.\d+)", line)
+                            DirList = re.match("^DirList.*=.*on", line)
+
+                            if TLSRequired:
+                                try:
+                                    if int(TLSRequired.group(1).strip()) != 0:
+                                        hardening[file]["TLSRequired"] = True
+                                except Exception as e:
+                                    pass
+
+                            if MinPassLen:
+                                try:
+                                    if int(MinPassLen.group(1).strip()) > 12:
+                                        hardening[file]["MinPasswordLen"] = True
+                                except Exception as e:
+                                    pass   
+                                                                 
+                            if "MaxClients" in line:
+                                hardening[file]["MaxClients"] = True
+
+                            if DirList:
+                                try:
+                                    if int(DirList.group(1).strip()) == "on":
+                                        hardening[file]["DirList"] = True
+                                except Exception as e:
+                                    pass           
+
+        except Exception as e:
+            print(e)
+
+        return hardening
 
     def Registry(self):
-        reg_keys = {"SOFTWARE\Microsoft\Windows\CurrentVersion\Run": None}
+        reg_keys = {"SOFTWARE\Microsoft\Windows\CurrentVersion\Run": None, 
+                    "System\CurrentControlSet\Services\SharedAccess\Parameters\FirewallPolicy\StandardProfile": None}
         values = []
         try:
             i = 0
             for reg_key in reg_keys: 
                 with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, reg_key) as key:
+                    try:
+                        value, reg_type = winreg.QueryValueEx(key, "EnableFirewall")
+                        if int(value) != 1:
+                            reg_keys[reg_key] = [f"EnableFirewall#{value}"]
+                        continue
+                    except Exception as e:
+                        pass
                     while True:
                         try:
                             name, value, type = winreg.EnumValue(key, i)
-                            values.append(value)
+                            values.append(f"{name}#{value}")
                             i += 1
                         except OSError:
                             break
@@ -42,8 +102,8 @@ class WinConfigs():
             return hardening
         try:
             for file in config_files:
-                hardening[file] = {"ServerTokens Prod":False, 
-                                    "ServerSignature Off":False, 
+                hardening[file] = {"ServerTokens Prod": False, 
+                                    "ServerSignature Off": False, 
                                     "ApacheOptions": False,
                                     "Etag": False,
                                     "TraceReq": False,
@@ -137,7 +197,7 @@ class WinConfigs():
         return hardening
 
 
-    def Get_Config_Files(self, path, service):
+    def Get_Config_Files(self, path, service, extention="conf"):
         config_files = []
         retry_flag = False
 
@@ -154,11 +214,18 @@ class WinConfigs():
                 retry_flag = True
                 continue
 
-        for file in files:
-            match = re.match("^.*\.conf$", file)
-            if match:
-                full_path = join(path, file)
-                config_files.append(full_path)
+        if extention == "conf":
+            for file in files:
+                match = re.match("^.*\.conf$", file)
+                if match:
+                    full_path = join(path, file)
+                    config_files.append(full_path)
+        elif extention == "xml":
+            for file in files:
+                match = re.match("^.*\.xml$", file)
+                if match:
+                    full_path = join(path, file)
+                    config_files.append(full_path)
         
       
         return config_files

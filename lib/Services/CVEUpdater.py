@@ -7,7 +7,6 @@ import os
 from os.path import exists
 import re
 from packaging.version import Version
-from pprint import pprint
 
 class CVEUpdater():
     def __init__(self, versions):

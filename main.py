@@ -1,4 +1,3 @@
-import openpyxl.styles
 import lib.Services.ServiceScanController as ServiceScanController 
 import lib.OSProber as OSProber
 import lib.Users.UserAssessmentController as UserAssessController
@@ -9,8 +8,7 @@ from pprint import pprint
 import time
 import argparse
 from datetime import timedelta
-import openpyxl
-import shutil
+
 
 # Create script arguments 
 parser = argparse.ArgumentParser()
@@ -144,11 +142,32 @@ if args.configurations:
     print("\n\n\n==== Configuration Assessment ====")
     configs_trigger = True
     test_configurations = ConfigController.ConfigController(distro, os)
-    apache, postgresql, nftables, registry = test_configurations.ChooseConfigs()
-    configurations = {"Registry": registry, "Apache": apache, "Postgresql":postgresql, "Nftables":nftables}
+    apache, postgresql, nftables, registry, filezilla = test_configurations.ChooseConfigs()
+    configurations = {"Registry": registry, "Apache": apache, "Postgresql":postgresql, "Nftables":nftables, "Filezilla":filezilla}
     print()
-    if any([registry, apache, postgresql, nftables]):
+    if any([registry, apache, postgresql, nftables, filezilla]):
         
+        if filezilla:
+            print("Filezilla configurations")
+            for config in filezilla.keys():
+                print(f"\nConfiguration: {config}")
+                for rule in filezilla[config]:
+                    exists = filezilla[config][rule]
+
+                    if rule == "DirList" and not exists:
+                        print(f"Warning: Consider removing \"{rule}\" from the configuration file")
+                        filezilla[config][rule]  = f"Warning: Consider removing \"{rule}\" from the configuration file"
+                    elif rule == "MinPasswordLen" and not exists:
+                        print(f"Warning: Please set the password minimum length to >12")
+                        filezilla[config][rule]  = f"Warning: Please set the password minimum length to >12"
+                    elif not exists:
+                        print(f"Consider adding \"{rule}\" in the configuration file")
+                        filezilla[config][rule]  = f"Consider adding \"{rule}\" in the configuration file"
+
+
+
+
+
         if registry:
             print("Registry needs review")
             pprint(registry)
@@ -163,7 +182,7 @@ if args.configurations:
                         print(f"Consider adding \"{rule}\" in the configuration file")
                         apache[config][rule]  = f"Consider adding \"{rule}\" in the configuration file"
         if postgresql:
-            print("Postgresqk configurations")
+            print("Postgresql configurations")
             for config in postgresql.keys():
                 points = 0
                 print(f"\nConfiguration: {config}")
@@ -226,5 +245,3 @@ reporter_obj.create_user_report(vulnerable_users, critical_users)
 reporter_obj.create_conf_report(configurations)
 reporter_obj.xlsx_to_pdf(pdf_file)
 print(f"Report files {xlsx_file} and {pdf_file} have been created")
-
-

@@ -2,6 +2,7 @@ import openpyxl
 import shutil
 import openpyxl.styles
 import aspose.cells as ac
+import re
 
 class Reporter():
 
@@ -193,7 +194,7 @@ class Reporter():
                 self.ws[f'H{confFile_cell-1}'] = "Service"
                 self.ws[f'I{confFile_cell-1}'].font = openpyxl.styles.Font(name=self.font_family, bold=True)
                 self.ws[f'H{confFile_cell-1}'].font = openpyxl.styles.Font(name=self.font_family, bold=True)
-                if service in ["Apache", "PostgreSQL"]:
+                if service in ["Apache", "PostgreSQL", "Filezilla"]:
                     for file in configurations[service]:
                         if configurations[service][file]:
                             self.ws[f'H{confFile_cell}'] = "Configuration File"
@@ -206,7 +207,7 @@ class Reporter():
                             for configuration in configurations[service][file].values():
                                 if not isinstance(configuration, bool):
                                     if "Warning" in configuration:
-                                        self.ws[f'C{recom_cell}'].fill = openpyxl.styles.PatternFill("solid", fgColor="ecec0a")
+                                        self.ws[f'I{recom_cell}'].fill = openpyxl.styles.PatternFill("solid", fgColor="ecec0a")
 
                                     self.ws[f'I{recom_cell}'] = configuration
                                     self.ws[f'I{recom_cell}'].font = openpyxl.styles.Font(name=self.font_family)
@@ -215,20 +216,27 @@ class Reporter():
                             confFile_cell = recom_cell-2
                 else:
                     for reg_key in configurations[service]:
-                        index = 0
-                        self.ws[f'H{recom_cell-2}'] = "Registry Key"
-                        self.ws[f'I{recom_cell-2}'] = reg_key
-                        self.ws[f'I{recom_cell-1}'] = "Needs review"
-                        self.ws[f'H{recom_cell-2}'].font = openpyxl.styles.Font(name=self.font_family, bold=True)
-                        self.ws[f'I{recom_cell-2}'].font = openpyxl.styles.Font(name=self.font_family, bold=True)
-                        self.ws[f'I{recom_cell-1}'].font = openpyxl.styles.Font(name=self.font_family, bold=True)
-                        while index < len(configurations[service][reg_key]):
-                            configurations[service][reg_key][index]
-                            if configurations[service][reg_key][index]:
-                                self.ws[f'I{recom_cell}'] = configurations[service][reg_key][index]
-                                self.ws[f'I{recom_cell}'].font = openpyxl.styles.Font(name=self.font_family)
-                                recom_cell += 1
-                            index += 1
+                        if configurations[service][reg_key]:
+                            index = 0
+                            self.ws[f'H{recom_cell-2}'] = "Registry Key"
+                            self.ws[f'I{recom_cell-2}'] = reg_key
+                            self.ws[f'I{recom_cell-1}'] = "Needs review"
+                            self.ws[f'H{recom_cell-2}'].font = openpyxl.styles.Font(name=self.font_family, bold=True)
+                            self.ws[f'I{recom_cell-2}'].font = openpyxl.styles.Font(name=self.font_family, bold=True)
+                            self.ws[f'I{recom_cell-1}'].font = openpyxl.styles.Font(name=self.font_family, bold=True)
+
+                            while index < len(configurations[service][reg_key]):
+                                if configurations[service][reg_key][index]:
+                                    name = re.split('#', configurations[service][reg_key][index])
+                                    if name[0] == "EnableFirewall" and name[1] == "0":
+                                        self.ws[f'H{recom_cell}'].fill = openpyxl.styles.PatternFill("solid", fgColor="ecec0a")
+                                        self.ws[f'I{recom_cell}'].fill = openpyxl.styles.PatternFill("solid", fgColor="ecec0a")
+                                    self.ws[f'H{recom_cell}'] = name[0]
+                                    self.ws[f'I{recom_cell}'] = name[1]
+                                    self.ws[f'H{recom_cell}'].font = openpyxl.styles.Font(name=self.font_family)
+                                    self.ws[f'I{recom_cell}'].font = openpyxl.styles.Font(name=self.font_family)
+                                    recom_cell += 1
+                                index += 1
                         recom_cell += 3
                         confFile_cell = recom_cell-2
                             
