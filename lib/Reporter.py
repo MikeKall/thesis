@@ -1,7 +1,6 @@
 import openpyxl
 import shutil
 import openpyxl.styles
-import aspose.cells as ac
 import re
 
 class Reporter():
@@ -190,6 +189,8 @@ class Reporter():
         self.ws[f'I{recom_cell-1}'].font = openpyxl.styles.Font(name=self.font_family, bold=True)
         for service in configurations:
             if configurations[service]:
+                serviceName_cell = recom_cell-3
+                confFile_cell = recom_cell-2
                 self.ws[f'I{confFile_cell-1}'] = service
                 self.ws[f'H{confFile_cell-1}'] = "Service"
                 self.ws[f'I{confFile_cell-1}'].font = openpyxl.styles.Font(name=self.font_family, bold=True)
@@ -214,7 +215,7 @@ class Reporter():
                                     recom_cell += 1
                             recom_cell += 2
                             confFile_cell = recom_cell-2
-                else:
+                elif service == "Registry":
                     for reg_key in configurations[service]:
                         if configurations[service][reg_key]:
                             index = 0
@@ -240,11 +241,33 @@ class Reporter():
                         recom_cell += 3
                         confFile_cell = recom_cell-2
                             
-            
+                elif service == "Nftables":
+                    self.ws[f'I{recom_cell-3}'] = "Nftables"
+                    self.ws[f'I{recom_cell-2}'] = "Needs review"
+                    self.ws[f'H{recom_cell-2}'] = ""
+                    self.ws[f'I{recom_cell-2}'].font = openpyxl.styles.Font(name=self.font_family, bold=True)
+                    self.ws[f'I{recom_cell-3}'].font = openpyxl.styles.Font(name=self.font_family, bold=True)
+
+                    if configurations[service][0]:
+                        if configurations[service][1]:
+                            for rule in configurations[service][1]:
+                                self.ws[f'I{recom_cell-1}'] = rule
+                                self.ws[f'I{recom_cell-1}'].font = openpyxl.styles.Font(name=self.font_family, bold=True)
+                                recom_cell += 1
+                    else:
+                        self.ws[f'I{recom_cell-3}'] = "Nftables are inactive"
+                        self.ws[f'I{recom_cell-3}'].font = openpyxl.styles.Font(name=self.font_family, bold=True)
+                        self.ws[f'I{recom_cell-3}'].fill = openpyxl.styles.PatternFill("solid", fgColor="d11818")
+                recom_cell += 2
         self.wb.save(self.xlsx_file)
 
-    def xlsx_to_pdf(self, pdf_file):
-        workbook = ac.Workbook(self.xlsx_file)
-        pdfOptions = ac.PdfSaveOptions()
-        pdfOptions.all_columns_in_one_page_per_sheet = True
-        workbook.save(pdf_file, pdfOptions)
+    def xlsx_to_pdf(self, pdf_file, os):
+        if os == "windows":
+            import aspose.cells as ac
+            workbook = ac.Workbook(self.xlsx_file)
+            pdfOptions = ac.PdfSaveOptions()
+            pdfOptions.all_columns_in_one_page_per_sheet = True
+            workbook.save(pdf_file, pdfOptions)
+            print(f"Report files {self.xlsx_file} and {pdf_file} have been created")
+        else:
+            print(f"Report files {self.xlsx_file} have been created")
