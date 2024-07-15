@@ -38,7 +38,7 @@ possible_vulnerabilities = {}
 local_users = []
 critical_users = {}
 vulnerable_users = {}
-
+configurations = []
 
 if args.services:
     sstart_time = time.time()
@@ -49,7 +49,7 @@ if args.services:
     services = serviceController_obj.FindServices()
     versions = serviceController_obj.FindVersions(services)
     CVESFetcher_obj = CVEUpdater.CVEUpdater(versions)
-    vulnerabilities, cache_exists = CVESFetcher_obj.GetVulnerabilities()
+    vulnerabilities = CVESFetcher_obj.GetVulnerabilities()
         
     version_count = 0
     for version in versions.values():
@@ -141,21 +141,29 @@ if args.crack_users:
 
 if args.configurations:
     cstart_time = time.time()
+    print("\n\n\n==== Configuration Assessment ====")
     configs_trigger = True
     test_configurations = ConfigController.ConfigController(distro, os)
-    apache, mysql, postgresql, nftables = test_configurations.ChooseConfigs()
+    apache, postgresql, nftables, registry = test_configurations.ChooseConfigs()
+    configurations = {"Registry": registry, "Apache": apache, "Postgresql":postgresql, "Nftables":nftables}
     print()
-    if any([apache, mysql, postgresql, nftables]):
+    if any([registry, apache, postgresql, nftables]):
+        
+        if registry:
+            print("Registry needs review")
+            pprint(registry)
+        
         if apache:
+            print("Apache configurations")
             for config in apache.keys():
                 print(f"\nConfiguration: {config}")
                 for rule in apache[config]:
                     exists = apache[config][rule]
                     if not exists:
-                        print(f"Recommendation: Consider adding \"{rule}\" in the configuration file")
-        if mysql:
-            pprint(mysql)
+                        print(f"Consider adding \"{rule}\" in the configuration file")
+                        apache[config][rule]  = f"Consider adding \"{rule}\" in the configuration file"
         if postgresql:
+            print("Postgresqk configurations")
             for config in postgresql.keys():
                 points = 0
                 print(f"\nConfiguration: {config}")
@@ -163,20 +171,25 @@ if args.configurations:
                     exists = postgresql[config][rule]
                     if rule == "noauth_connections" and exists:
                         points += 1
-                        print(f"Warning: The configuration file allows connections without authentication")    
+                        print(f"Warning: The configuration file allows connections without authentication")
+                        postgresql[config][rule] = "Warning: The configuration file allows connections without authentication"
                     elif rule == "unrestricted_listening" and exists:
                         points += 1
                         print(f"Warning: The configuration file allows connections from anywhere")
+                        postgresql[config][rule] = "Warning: The configuration file allows connections from anywhere"
                     elif rule == "ssl" and not exists:
                         points += 1
-                        print(f"Recommendation: Consider adding \"{rule}\" in the configuration file")
+                        print(f"Consider adding \"{rule}\" in the configuration file")
+                        postgresql[config][rule] = f"Consider adding \"{rule}\" in the configuration file"
                     elif rule == "keep_alive" and not exists:
                         points += 1
-                        print(f"Recommendation: Consider adding \"{rule}\" in the configuration file")
+                        print(f"Consider adding \"{rule}\" in the configuration file")
+                        postgresql[config][rule] = f"Consider adding \"{rule}\" in the configuration file"
                 if points == 0:
                     print("File is well configured")
 
         if nftables:
+            print("Nftables configurations")
             print(f"Warning: {nftables[0]}")
             print(f"Warning: {nftables[1]}")
 
@@ -205,10 +218,13 @@ if configs_trigger:
 
 print()
 
-reporter_obj = Reporter.Reporter()
-
+xlsx_file = "report.xlsx"
+pdf_file = "report.pdf"
+reporter_obj = Reporter.Reporter(xlsx_file)
 reporter_obj.create_services_report(active_vulnerabilities, possible_vulnerabilities)
 reporter_obj.create_user_report(vulnerable_users, critical_users)
-reporter_obj.xlsx_to_pdf("report.xlsx", "report.pdf")
+reporter_obj.create_conf_report(configurations)
+reporter_obj.xlsx_to_pdf(pdf_file)
+print(f"Report files {xlsx_file} and {pdf_file} have been created")
 
 

@@ -3,17 +3,17 @@ import shutil
 import openpyxl.styles
 import aspose.cells as ac
 
-
 class Reporter():
 
-    def __init__(self):
-        shutil.copyfile("report_template.xlsx", "report.xlsx")
-        self.wb = openpyxl.load_workbook('report.xlsx')
+    def __init__(self, xlsx_file):
+        self.xlsx_file = xlsx_file
+        shutil.copyfile("report_template.xlsx", xlsx_file)
+        self.wb = openpyxl.load_workbook(xlsx_file)
         self.ws = self.wb.active
         self.font_family = 'Calibri'
         self.ws[f'B1'].font = openpyxl.styles.Font(name=self.font_family, sz=12, bold=True)
-        self.ws[f'F1'].font = openpyxl.styles.Font(name=self.font_family, sz=12, bold=True)
-        self.ws[f'K1'].font = openpyxl.styles.Font(name=self.font_family, sz=12, bold=True)
+        self.ws[f'D1'].font = openpyxl.styles.Font(name=self.font_family, sz=12, bold=True)
+        self.ws[f'G1'].font = openpyxl.styles.Font(name=self.font_family, sz=12, bold=True)
         
         
     def create_services_report(self, active_service_vulnerabilities, possible_service_vulnerabilities):
@@ -154,31 +154,89 @@ class Reporter():
             i += 1
 
         # Save the workbook
-        self.wb.save('report.xlsx')
-        print("Report file saved as report.xlsx")
+        self.wb.save(self.xlsx_file)
     
     def create_user_report(self, vulnerable_users, high_privilaged_users):
         starting_cell = 4
-        self.ws[f'G{starting_cell-1}'].font = openpyxl.styles.Font(name=self.font_family, bold=True)
         self.ws[f'F{starting_cell-1}'].font = openpyxl.styles.Font(name=self.font_family, bold=True)
+        self.ws[f'E{starting_cell-1}'].font = openpyxl.styles.Font(name=self.font_family, bold=True)
 
         for user in high_privilaged_users:
-            self.ws[f'G{starting_cell}'] = f"{user} member of {high_privilaged_users[user]}"
-            self.ws[f'G{starting_cell}'].font = openpyxl.styles.Font(name=self.font_family)
-            self.ws[f'G{starting_cell}'].fill = openpyxl.styles.PatternFill("solid", fgColor="d11818")
+            self.ws[f'F{starting_cell}'] = f"{user} member of {high_privilaged_users[user]}"
+            self.ws[f'F{starting_cell}'].font = openpyxl.styles.Font(name=self.font_family)
+            self.ws[f'F{starting_cell}'].fill = openpyxl.styles.PatternFill("solid", fgColor="d11818")
             starting_cell += 1
         
         starting_cell = 4
         for user in vulnerable_users:
             if not user in high_privilaged_users:
-                self.ws[f'F{starting_cell}'] = user
-                self.ws[f'F{starting_cell}'].font = openpyxl.styles.Font(name=self.font_family)
-                self.ws[f'F{starting_cell}'].fill = openpyxl.styles.PatternFill("solid", fgColor="ecec0a")
+                self.ws[f'E{starting_cell}'] = user
+                self.ws[f'E{starting_cell}'].font = openpyxl.styles.Font(name=self.font_family)
+                self.ws[f'E{starting_cell}'].fill = openpyxl.styles.PatternFill("solid", fgColor="ecec0a")
                 starting_cell += 1
         
-        self.wb.save('report.xlsx')
+        self.wb.save(self.xlsx_file)
 
+    def create_conf_report(self, configurations):
+        recom_cell = 6
+        serviceName_cell = recom_cell-3
+        confFile_cell = recom_cell-2
+        
+        self.ws[f'H{serviceName_cell}'].font = openpyxl.styles.Font(name=self.font_family, bold=True)
+        self.ws[f'I{serviceName_cell}'].font = openpyxl.styles.Font(name=self.font_family, bold=True)
+        self.ws[f'H{confFile_cell}'].font = openpyxl.styles.Font(name=self.font_family, bold=True)
+        self.ws[f'I{confFile_cell}'].font = openpyxl.styles.Font(name=self.font_family, bold=True)
+        self.ws[f'I{recom_cell-1}'].font = openpyxl.styles.Font(name=self.font_family, bold=True)
+        for service in configurations:
+            if configurations[service]:
+                self.ws[f'I{confFile_cell-1}'] = service
+                self.ws[f'H{confFile_cell-1}'] = "Service"
+                self.ws[f'I{confFile_cell-1}'].font = openpyxl.styles.Font(name=self.font_family, bold=True)
+                self.ws[f'H{confFile_cell-1}'].font = openpyxl.styles.Font(name=self.font_family, bold=True)
+                if service in ["Apache", "PostgreSQL"]:
+                    for file in configurations[service]:
+                        if configurations[service][file]:
+                            self.ws[f'H{confFile_cell}'] = "Configuration File"
+                            self.ws[f'I{confFile_cell}'] = file
+                            self.ws[f'I{recom_cell-1}'] = "Recommendations"
+                            self.ws[f'H{confFile_cell}'].font = openpyxl.styles.Font(name=self.font_family, bold=True)
+                            self.ws[f'I{confFile_cell}'].font = openpyxl.styles.Font(name=self.font_family, bold=True)
+                            self.ws[f'I{recom_cell-1}'].font = openpyxl.styles.Font(name=self.font_family, bold=True)
 
-    def xlsx_to_pdf(self, xlsx_file, pdf_file):
-        workbook = ac.Workbook(xlsx_file)
-        workbook.save(pdf_file)
+                            for configuration in configurations[service][file].values():
+                                if not isinstance(configuration, bool):
+                                    if "Warning" in configuration:
+                                        self.ws[f'C{recom_cell}'].fill = openpyxl.styles.PatternFill("solid", fgColor="ecec0a")
+
+                                    self.ws[f'I{recom_cell}'] = configuration
+                                    self.ws[f'I{recom_cell}'].font = openpyxl.styles.Font(name=self.font_family)
+                                    recom_cell += 1
+                            recom_cell += 2
+                            confFile_cell = recom_cell-2
+                else:
+                    for reg_key in configurations[service]:
+                        index = 0
+                        self.ws[f'H{recom_cell-2}'] = "Registry Key"
+                        self.ws[f'I{recom_cell-2}'] = reg_key
+                        self.ws[f'I{recom_cell-1}'] = "Needs review"
+                        self.ws[f'H{recom_cell-2}'].font = openpyxl.styles.Font(name=self.font_family, bold=True)
+                        self.ws[f'I{recom_cell-2}'].font = openpyxl.styles.Font(name=self.font_family, bold=True)
+                        self.ws[f'I{recom_cell-1}'].font = openpyxl.styles.Font(name=self.font_family, bold=True)
+                        while index < len(configurations[service][reg_key]):
+                            configurations[service][reg_key][index]
+                            if configurations[service][reg_key][index]:
+                                self.ws[f'I{recom_cell}'] = configurations[service][reg_key][index]
+                                self.ws[f'I{recom_cell}'].font = openpyxl.styles.Font(name=self.font_family)
+                                recom_cell += 1
+                            index += 1
+                        recom_cell += 3
+                        confFile_cell = recom_cell-2
+                            
+            
+        self.wb.save(self.xlsx_file)
+
+    def xlsx_to_pdf(self, pdf_file):
+        workbook = ac.Workbook(self.xlsx_file)
+        pdfOptions = ac.PdfSaveOptions()
+        pdfOptions.all_columns_in_one_page_per_sheet = True
+        workbook.save(pdf_file, pdfOptions)
