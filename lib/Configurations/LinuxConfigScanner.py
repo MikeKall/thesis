@@ -125,11 +125,9 @@ class LinuxConfigs():
         try:
             result = subprocess.run(['systemctl', 'is-active', 'nftables'], capture_output=True, text=True)
             is_active = result.stdout.strip() == 'active'
-            print(is_active)
             if is_active:
                 result = subprocess.run(['nft', 'list', 'ruleset'], capture_output=True, text=True)
                 rules = result.stdout.strip()
-                print(rules)
                 if rules:
                     bad_rules = self.analyze_rules(rules)
                 else:
