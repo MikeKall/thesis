@@ -206,9 +206,10 @@ if args.configurations:
         if nftables:
             print("Nftables configurations")
 
-            if nftables[0]:
-                print(f"Warning: Active {nftables[0]}")
-            print(f"Warning: {nftables[1]}")
+            if not nftables[0]:
+                print(f"Critical: Nftables is not active")
+            else:
+                print(f"Warning: {nftables[1]}")
 
     else:
         print("No hardening tips to recommend")
@@ -238,7 +239,7 @@ print()
 xlsx_file = "report.xlsx"
 pdf_file = "report.pdf"
 reporter_obj = Reporter.Reporter(xlsx_file)
-reporter_obj.create_services_report(active_vulnerabilities, possible_vulnerabilities)
+reporter_obj.create_services_report(versions, active_vulnerabilities, possible_vulnerabilities)
 reporter_obj.create_user_report(vulnerable_users, critical_users)
 reporter_obj.create_conf_report(configurations)
 
