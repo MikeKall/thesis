@@ -187,51 +187,54 @@ class CVEUpdater():
                             service_version_match = re.search(pattern, service_version)
                             if service_version_match:
                                 service_version = service_version_match.group(0)
-                                if ((has_startingVersionIncluding and Version(service_version) >= Version(starting_version)) or (has_startingVersionExcluding and Version(service_version) > Version(starting_version))) and \
-                                    ((has_endingVersionIncluding and Version(service_version) <= Version(ending_version)) or (has_endingVersionExcluding and Version(service_version) < Version(ending_version))):
-                                    if service_name not in active_vulnerbilities:
-                                        active_vulnerbilities[service_name] = {}
-                                    
-                                    try:
-                                        cve_ID = {"CVE": cve['cve']['id'],
-                                                    "Severity": cve['cve']['metrics']['cvssMetricV2'][0]['baseSeverity'],
-                                                    "Exploitability Score": cve['cve']['metrics']['cvssMetricV2'][0]['exploitabilityScore'],
-                                                    "Impact Score": cve['cve']['metrics']['cvssMetricV2'][0]['impactScore'],
-                                                    "Service Version": service_version,
-                                                    "Starting Version": starting_version,
-                                                    "Ending Version": ending_version}
-                                    except:
-                                        cve_ID = {"CVE": cve['cve']['id'],
-                                                    "Severity": cve['cve']['metrics']['cvssMetricV31'][0]['cvssData']['baseSeverity'],
-                                                    "Exploitability Score": cve['cve']['metrics']['cvssMetricV31'][0]['exploitabilityScore'],
-                                                    "Impact Score": cve['cve']['metrics']['cvssMetricV31'][0]['impactScore'],
-                                                    "Service Version": service_version,
-                                                    "Starting Version": starting_version,
-                                                    "Ending Version": ending_version}
+                                if service_version != "0":
+                                    if ((has_startingVersionIncluding and Version(service_version) >= Version(starting_version)) or (has_startingVersionExcluding and Version(service_version) > Version(starting_version))) and \
+                                        ((has_endingVersionIncluding and Version(service_version) <= Version(ending_version)) or (has_endingVersionExcluding and Version(service_version) < Version(ending_version))):
+                                        if service_name not in active_vulnerbilities:
+                                            active_vulnerbilities[service_name] = {}
+                                        
+                                        try:
+                                            cve_ID = {"CVE": cve['cve']['id'],
+                                                        "Severity": cve['cve']['metrics']['cvssMetricV2'][0]['baseSeverity'],
+                                                        "Exploitability Score": cve['cve']['metrics']['cvssMetricV2'][0]['exploitabilityScore'],
+                                                        "Impact Score": cve['cve']['metrics']['cvssMetricV2'][0]['impactScore'],
+                                                        "Service Version": service_version,
+                                                        "Starting Version": starting_version,
+                                                        "Ending Version": ending_version}
+                                        except:
+                                            cve_ID = {"CVE": cve['cve']['id'],
+                                                        "Severity": cve['cve']['metrics']['cvssMetricV31'][0]['cvssData']['baseSeverity'],
+                                                        "Exploitability Score": cve['cve']['metrics']['cvssMetricV31'][0]['exploitabilityScore'],
+                                                        "Impact Score": cve['cve']['metrics']['cvssMetricV31'][0]['impactScore'],
+                                                        "Service Version": service_version,
+                                                        "Starting Version": starting_version,
+                                                        "Ending Version": ending_version}
 
-                                    active_cve_IDs.append(cve_ID)
-                                elif ((not (has_startingVersionIncluding or has_startingVersionExcluding)) and (((has_endingVersionIncluding and Version(service_version) <= Version(ending_version)) or (has_endingVersionExcluding and Version(service_version) < Version(ending_version))))) or \
-                                    ((not (has_endingVersionIncluding or has_endingVersionExcluding)) and (((has_startingVersionIncluding and Version(service_version) >= Version(starting_version)) or (has_startingVersionExcluding and Version(service_version) > Version(starting_version))))):
-                                    if service_name not in possible_vulnerabilities:
-                                            possible_vulnerabilities[service_name] = {}
+                                        active_cve_IDs.append(cve_ID)
+                                    elif ((not (has_startingVersionIncluding or has_startingVersionExcluding)) and (((has_endingVersionIncluding and Version(service_version) <= Version(ending_version)) or (has_endingVersionExcluding and Version(service_version) < Version(ending_version))))) or \
+                                        ((not (has_endingVersionIncluding or has_endingVersionExcluding)) and (((has_startingVersionIncluding and Version(service_version) >= Version(starting_version)) or (has_startingVersionExcluding and Version(service_version) > Version(starting_version))))):
+                                        if service_name not in possible_vulnerabilities:
+                                                possible_vulnerabilities[service_name] = {}
 
-                                    try:
-                                        cve_ID = {"CVE": cve['cve']['id'],
-                                                    "Severity": cve['cve']['metrics']['cvssMetricV2'][0]['baseSeverity'],
-                                                    "Exploitability Score": cve['cve']['metrics']['cvssMetricV2'][0]['exploitabilityScore'],
-                                                    "Impact Score": cve['cve']['metrics']['cvssMetricV2'][0]['impactScore'],
-                                                    "Service Version": service_version,
-                                                    "Starting Version": starting_version,
-                                                    "Ending Version": ending_version}
-                                    except:
-                                        cve_ID = {"CVE": cve['cve']['id'],
-                                                    "Severity": cve['cve']['metrics']['cvssMetricV31'][0]['cvssData']['baseSeverity'],
-                                                    "Exploitability Score": cve['cve']['metrics']['cvssMetricV31'][0]['exploitabilityScore'],
-                                                    "Impact Score": cve['cve']['metrics']['cvssMetricV31'][0]['impactScore'],
-                                                    "Service Version": service_version,
-                                                    "Starting Version": starting_version,
-                                                    "Ending Version": ending_version}
-                                    possible_cve_IDs.append(cve_ID) 
+                                        try:
+                                            cve_ID = {"CVE": cve['cve']['id'],
+                                                        "Severity": cve['cve']['metrics']['cvssMetricV2'][0]['baseSeverity'],
+                                                        "Exploitability Score": cve['cve']['metrics']['cvssMetricV2'][0]['exploitabilityScore'],
+                                                        "Impact Score": cve['cve']['metrics']['cvssMetricV2'][0]['impactScore'],
+                                                        "Service Version": service_version,
+                                                        "Starting Version": starting_version,
+                                                        "Ending Version": ending_version}
+                                        except:
+                                            cve_ID = {"CVE": cve['cve']['id'],
+                                                        "Severity": cve['cve']['metrics']['cvssMetricV31'][0]['cvssData']['baseSeverity'],
+                                                        "Exploitability Score": cve['cve']['metrics']['cvssMetricV31'][0]['exploitabilityScore'],
+                                                        "Impact Score": cve['cve']['metrics']['cvssMetricV31'][0]['impactScore'],
+                                                        "Service Version": service_version,
+                                                        "Starting Version": starting_version,
+                                                        "Ending Version": ending_version}
+                                        possible_cve_IDs.append(cve_ID)
+                                else:
+                                    break
                     else:
                         break
                 else:

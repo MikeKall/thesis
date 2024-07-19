@@ -76,7 +76,7 @@ class LinuxServicesScanner:
         return any(char.isdigit() for char in inString)
     
     def clean_service_name(self, service):
-        pattern = "(\S+)(?=.service)"
+        pattern = r"(\S+)(?=.service)"
         match = re.search(pattern, service)
         if match:
             service_name = match.group(1)
