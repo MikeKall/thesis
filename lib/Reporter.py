@@ -1,9 +1,8 @@
 import openpyxl
 import shutil
 import openpyxl.styles
-import aspose.cells as ac
 import re
-
+from pprint import pprint
 class Reporter():
 
     def __init__(self, xlsx_file):
@@ -17,9 +16,9 @@ class Reporter():
         self.ws[f'G1'].font = openpyxl.styles.Font(name=self.font_family, sz=12, bold=True)
         
         
-    def create_services_report(self, active_service_vulnerabilities, possible_service_vulnerabilities):
+    def create_services_report(self, service_versions, active_service_vulnerabilities, possible_service_vulnerabilities):
         
-        offset = 8
+        offset = 10
         NameLabel_cell = 3
         SeviceName_cell = 3
         VulnLabel_cell = 4
@@ -28,131 +27,299 @@ class Reporter():
         Impact_cell = 7
         Version_cell = 8
         Severity_cell = 9
+        StartingV_cell = 10
+        EndingV_cell = 11
 
-        for service_name in active_service_vulnerabilities:
-            self.ws[f'B{SeviceName_cell}'].value = service_name
-            self.ws[f'B{CVE_cell}'] = active_service_vulnerabilities[service_name]["CVE"]
-            self.ws[f'B{Exploitability_cell}'] = active_service_vulnerabilities[service_name]["Exploitability Score"]
-            self.ws[f'B{Impact_cell}'] = active_service_vulnerabilities[service_name]["Impact Score"]
-            self.ws[f'B{Version_cell}'] = active_service_vulnerabilities[service_name]["Service Version"]
-            self.ws[f'B{Severity_cell}'] = active_service_vulnerabilities[service_name]["Severity"]
+        for service_name in service_versions:
+            if service_name in active_service_vulnerabilities and service_name in possible_service_vulnerabilities:
+                self.ws[f'A{NameLabel_cell}'] = 'Service Name'
+                self.ws[f'B{VulnLabel_cell}'] = 'Active Vulnerabilities'
+                self.ws[f'C{VulnLabel_cell}'] = 'Possible Vulnerabilities'
+                self.ws.merge_cells(f"B{NameLabel_cell}:C{NameLabel_cell}")
+                self.ws[f'B{SeviceName_cell}'].value = service_name
+                self.ws[f'A{SeviceName_cell}'].font = openpyxl.styles.Font(name=self.font_family, bold=True)
+                self.ws[f'B{SeviceName_cell}'].alignment = openpyxl.styles.Alignment(horizontal='center')
+                self.ws[f'A{NameLabel_cell}'].alignment = openpyxl.styles.Alignment(horizontal='center')
+                self.ws[f'B{VulnLabel_cell}'].alignment = openpyxl.styles.Alignment(horizontal='center')
+                self.ws[f'C{VulnLabel_cell}'].alignment = openpyxl.styles.Alignment(horizontal='center')
 
-            if active_service_vulnerabilities[service_name]["Severity"] == "HIGH":
-                self.ws[f'B{Severity_cell}'].fill = openpyxl.styles.PatternFill("solid", fgColor="d11818")
-            elif active_service_vulnerabilities[service_name]["Severity"] == "MEDIUM":
-                self.ws[f'B{Severity_cell}'].fill = openpyxl.styles.PatternFill("solid", fgColor="FFC300")
-            elif active_service_vulnerabilities[service_name]["Severity"] == "LOW":
-                self.ws[f'B{Severity_cell}'].fill = openpyxl.styles.PatternFill("solid", fgColor="ecec0a")
+                temp_counter = 0
+                for index in range(len(active_service_vulnerabilities[service_name])):
 
-            NameLabel_cell += offset
-            VulnLabel_cell += offset
-            SeviceName_cell += offset
-            CVE_cell += offset
-            Exploitability_cell += offset
-            Impact_cell += offset
-            Version_cell += offset
-            Severity_cell += offset
-        
-        for service_name in possible_service_vulnerabilities:
-            self.ws.merge_cells(f"B{NameLabel_cell}:C{NameLabel_cell}")
+                    self.ws[f'B{CVE_cell}'] = active_service_vulnerabilities[service_name][index]["CVE"]
+                    self.ws[f'B{Exploitability_cell}'] = active_service_vulnerabilities[service_name][index]["Exploitability Score"]
+                    self.ws[f'B{Impact_cell}'] = active_service_vulnerabilities[service_name][index]["Impact Score"]
+                    self.ws[f'B{Version_cell}'] = active_service_vulnerabilities[service_name][index]["Service Version"]
+                    self.ws[f'B{Severity_cell}'] = active_service_vulnerabilities[service_name][index]["Severity"]
+                    self.ws[f'B{StartingV_cell}'] = active_service_vulnerabilities[service_name][index]["Starting Version"]
+                    self.ws[f'B{EndingV_cell}'] = active_service_vulnerabilities[service_name][index]["Ending Version"]
 
-            self.ws[f'B{SeviceName_cell}'].value = service_name
-            self.ws[f'C{CVE_cell}'] = possible_service_vulnerabilities[service_name]["CVE"]
-            self.ws[f'C{Exploitability_cell}'] = possible_service_vulnerabilities[service_name]["Exploitability Score"]
-            self.ws[f'C{Impact_cell}'] = possible_service_vulnerabilities[service_name]["Impact Score"]
-            self.ws[f'C{Version_cell}'] = possible_service_vulnerabilities[service_name]["Service Version"]
-            self.ws[f'C{Severity_cell}'] = possible_service_vulnerabilities[service_name]["Severity"]       
+                    if active_service_vulnerabilities[service_name][index]["Severity"] == "HIGH":
+                        self.ws[f'B{Severity_cell}'].fill = openpyxl.styles.PatternFill("solid", fgColor="d11818")
+                    elif active_service_vulnerabilities[service_name][index]["Severity"] == "MEDIUM":
+                        self.ws[f'B{Severity_cell}'].fill = openpyxl.styles.PatternFill("solid", fgColor="FFC300")
+                    elif active_service_vulnerabilities[service_name][index]["Severity"] == "LOW":
+                        self.ws[f'B{Severity_cell}'].fill = openpyxl.styles.PatternFill("solid", fgColor="ecec0a")
 
-            if possible_service_vulnerabilities[service_name]["Severity"] == "HIGH":
-                self.ws[f'C{Severity_cell}'].fill = openpyxl.styles.PatternFill("solid", fgColor="d11818")
-            elif possible_service_vulnerabilities[service_name]["Severity"] == "MEDIUM":
-                self.ws[f'C{Severity_cell}'].fill = openpyxl.styles.PatternFill("solid", fgColor="FFC300")
-            elif possible_service_vulnerabilities[service_name]["Severity"] == "LOW":
-                self.ws[f'C{Severity_cell}'].fill = openpyxl.styles.PatternFill("solid", fgColor="ecec0a")
-            
-            NameLabel_cell += offset
-            VulnLabel_cell += offset
-            SeviceName_cell += offset
-            CVE_cell += offset
-            Exploitability_cell += offset
-            Impact_cell += offset
-            Version_cell += offset
-            Severity_cell += offset
+                    self.ws[f'B{SeviceName_cell}'].font = openpyxl.styles.Font(name=self.font_family, bold=True)
+                    self.ws[f'B{VulnLabel_cell}'].font = openpyxl.styles.Font(name=self.font_family)
+                    self.ws[f'B{CVE_cell}'].font = openpyxl.styles.Font(name=self.font_family)
+                    self.ws[f'B{Exploitability_cell}'].font = openpyxl.styles.Font(name=self.font_family)
+                    self.ws[f'B{Impact_cell}'].font = openpyxl.styles.Font(name=self.font_family)
+                    self.ws[f'B{Version_cell}'].font = openpyxl.styles.Font(name=self.font_family)
+                    self.ws[f'B{Severity_cell}'].font = openpyxl.styles.Font(name=self.font_family)
+                    self.ws[f'B{StartingV_cell}'].font = openpyxl.styles.Font(name=self.font_family)
+                    self.ws[f'B{EndingV_cell}'].font = openpyxl.styles.Font(name=self.font_family)
+                    self.ws[f'A{CVE_cell}'] = "CVE"
+                    self.ws[f'A{Exploitability_cell}'] = "Exploitability Score"
+                    self.ws[f'A{Impact_cell}'] = "Impact Score"
+                    self.ws[f'A{Version_cell}'] = "Service Version"
+                    self.ws[f'A{Severity_cell}'] = "Severity"
+                    self.ws[f'A{StartingV_cell}'] = "Starting version"
+                    self.ws[f'A{EndingV_cell}'] = "Ending Version"
+                    self.ws[f'A{CVE_cell}'].font = openpyxl.styles.Font(name=self.font_family, bold=True)
+                    self.ws[f'A{Exploitability_cell}'].font = openpyxl.styles.Font(name=self.font_family, bold=True)
+                    self.ws[f'A{Impact_cell}'].font = openpyxl.styles.Font(name=self.font_family, bold=True)
+                    self.ws[f'A{Version_cell}'].font = openpyxl.styles.Font(name=self.font_family, bold=True)
+                    self.ws[f'A{Severity_cell}'].font = openpyxl.styles.Font(name=self.font_family, bold=True)
+                    self.ws[f'A{StartingV_cell}'].font = openpyxl.styles.Font(name=self.font_family, bold=True)
+                    self.ws[f'A{EndingV_cell}'].font = openpyxl.styles.Font(name=self.font_family, bold=True)
+                    self.ws[f'A{SeviceName_cell}'].alignment = openpyxl.styles.Alignment(horizontal='right')
+                    self.ws[f'A{CVE_cell}'].alignment = openpyxl.styles.Alignment(horizontal='right')
+                    self.ws[f'A{Exploitability_cell}'].alignment = openpyxl.styles.Alignment(horizontal='right')
+                    self.ws[f'A{Impact_cell}'].alignment = openpyxl.styles.Alignment(horizontal='right')
+                    self.ws[f'A{Version_cell}'].alignment = openpyxl.styles.Alignment(horizontal='right')
+                    self.ws[f'A{Severity_cell}'].alignment = openpyxl.styles.Alignment(horizontal='right')
+                    self.ws[f'A{StartingV_cell}'].alignment = openpyxl.styles.Alignment(horizontal='right')
+                    self.ws[f'A{EndingV_cell}'].alignment = openpyxl.styles.Alignment(horizontal='right')
+                    self.ws[f'B{CVE_cell}'].alignment = openpyxl.styles.Alignment(horizontal='left')
+                    self.ws[f'B{Exploitability_cell}'].alignment = openpyxl.styles.Alignment(horizontal='left')
+                    self.ws[f'B{Impact_cell}'].alignment = openpyxl.styles.Alignment(horizontal='left')
+                    self.ws[f'B{Version_cell}'].alignment = openpyxl.styles.Alignment(horizontal='left')
+                    self.ws[f'B{Severity_cell}'].alignment = openpyxl.styles.Alignment(horizontal='left')
 
-            
-        limit = len(possible_service_vulnerabilities) if len(possible_service_vulnerabilities) >= len(active_service_vulnerabilities) else len(active_service_vulnerabilities)
-        i = 0
-        NameLabel_cell = 3
-        SeviceName_cell = 3
-        VulnLabel_cell = 4
-        CVE_cell = 5
-        Exploitability_cell = 6
-        Impact_cell = 7
-        Version_cell = 8
-        Severity_cell = 9
-        while i < limit:
-            self.ws.merge_cells(f"B{NameLabel_cell}:C{NameLabel_cell}")
+                    NameLabel_cell += offset
+                    VulnLabel_cell += offset
+                    SeviceName_cell += offset
+                    CVE_cell += offset
+                    Exploitability_cell += offset
+                    Impact_cell += offset
+                    Version_cell += offset
+                    Severity_cell += offset
+                    StartingV_cell += offset
+                    EndingV_cell += offset
+                    temp_counter+=1
+                temp_offset = temp_counter*offset
+                
+                for index in range(len(possible_service_vulnerabilities[service_name])):
+                    
+                    self.ws[f'C{CVE_cell-temp_offset}'] = possible_service_vulnerabilities[service_name][index]["CVE"]
+                    self.ws[f'C{Exploitability_cell-temp_offset}'] = possible_service_vulnerabilities[service_name][index]["Exploitability Score"]
+                    self.ws[f'C{Impact_cell-temp_offset}'] = possible_service_vulnerabilities[service_name][index]["Impact Score"]
+                    self.ws[f'C{Version_cell-temp_offset}'] = possible_service_vulnerabilities[service_name][index]["Service Version"]
+                    self.ws[f'C{Severity_cell-temp_offset}'] = possible_service_vulnerabilities[service_name][index]["Severity"]
+                    self.ws[f'C{StartingV_cell-temp_offset}'] = possible_service_vulnerabilities[service_name][index]["Starting Version"]
+                    self.ws[f'C{EndingV_cell-temp_offset}'] = possible_service_vulnerabilities[service_name][index]["Ending Version"]
 
-            self.ws[f'A{NameLabel_cell}'] = 'Service Name'
-            self.ws[f'B{VulnLabel_cell}'] = 'Active Vulnerabilities'
-            self.ws[f'C{VulnLabel_cell}'] = 'Possible Vulnerabilities'
-            self.ws[f'A{CVE_cell}'] = "CVE"
-            self.ws[f'A{Exploitability_cell}'] = "Exploitability Score"
-            self.ws[f'A{Impact_cell}'] = "Impact Score"
-            self.ws[f'A{Version_cell}'] = "Service Version"
-            self.ws[f'A{Severity_cell}'] = "Severity"
+                    if possible_service_vulnerabilities[service_name][index]["Severity"] == "HIGH":
+                        self.ws[f'C{Severity_cell-temp_offset}'].fill = openpyxl.styles.PatternFill("solid", fgColor="d11818")
+                    elif possible_service_vulnerabilities[service_name][index]["Severity"] == "MEDIUM":
+                        self.ws[f'C{Severity_cell-temp_offset}'].fill = openpyxl.styles.PatternFill("solid", fgColor="FFC300")
+                    elif possible_service_vulnerabilities[service_name][index]["Severity"] == "LOW":
+                        self.ws[f'C{Severity_cell-temp_offset}'].fill = openpyxl.styles.PatternFill("solid", fgColor="ecec0a")
 
-            # Set style
-            self.ws[f'A{SeviceName_cell}'].font = openpyxl.styles.Font(name=self.font_family, bold=True)
-            self.ws[f'A{CVE_cell}'].font = openpyxl.styles.Font(name=self.font_family, bold=True)
-            self.ws[f'A{Exploitability_cell}'].font = openpyxl.styles.Font(name=self.font_family, bold=True)
-            self.ws[f'A{Impact_cell}'].font = openpyxl.styles.Font(name=self.font_family, bold=True)
-            self.ws[f'A{Version_cell}'].font = openpyxl.styles.Font(name=self.font_family, bold=True)
-            self.ws[f'A{Severity_cell}'].font = openpyxl.styles.Font(name=self.font_family, bold=True)
+                    self.ws[f'C{SeviceName_cell-temp_offset}'].font = openpyxl.styles.Font(name=self.font_family, bold=True)
+                    self.ws[f'C{VulnLabel_cell-temp_offset}'].font = openpyxl.styles.Font(name=self.font_family)
+                    self.ws[f'C{CVE_cell-temp_offset}'].font = openpyxl.styles.Font(name=self.font_family)
+                    self.ws[f'C{Exploitability_cell-temp_offset}'].font = openpyxl.styles.Font(name=self.font_family)
+                    self.ws[f'C{Impact_cell-temp_offset}'].font = openpyxl.styles.Font(name=self.font_family)
+                    self.ws[f'C{Version_cell-temp_offset}'].font = openpyxl.styles.Font(name=self.font_family)
+                    self.ws[f'C{Severity_cell-temp_offset}'].font = openpyxl.styles.Font(name=self.font_family)
+                    self.ws[f'C{StartingV_cell-temp_offset}'].font = openpyxl.styles.Font(name=self.font_family)
+                    self.ws[f'C{EndingV_cell-temp_offset}'].font = openpyxl.styles.Font(name=self.font_family)
+                    self.ws[f'A{CVE_cell-temp_offset}'] = "CVE"
+                    self.ws[f'A{Exploitability_cell-temp_offset}'] = "Exploitability Score"
+                    self.ws[f'A{Impact_cell-temp_offset}'] = "Impact Score"
+                    self.ws[f'A{Version_cell-temp_offset}'] = "Service Version"
+                    self.ws[f'A{Severity_cell-temp_offset}'] = "Severity"
+                    self.ws[f'A{StartingV_cell-temp_offset}'] = "Starting version"
+                    self.ws[f'A{EndingV_cell-temp_offset}'] = "Ending Version"
+                    self.ws[f'A{CVE_cell-temp_offset}'].font = openpyxl.styles.Font(name=self.font_family, bold=True)
+                    self.ws[f'A{Exploitability_cell-temp_offset}'].font = openpyxl.styles.Font(name=self.font_family, bold=True)
+                    self.ws[f'A{Impact_cell-temp_offset}'].font = openpyxl.styles.Font(name=self.font_family, bold=True)
+                    self.ws[f'A{Version_cell-temp_offset}'].font = openpyxl.styles.Font(name=self.font_family, bold=True)
+                    self.ws[f'A{Severity_cell-temp_offset}'].font = openpyxl.styles.Font(name=self.font_family, bold=True)
+                    self.ws[f'A{StartingV_cell-temp_offset}'].font = openpyxl.styles.Font(name=self.font_family, bold=True)
+                    self.ws[f'A{EndingV_cell-temp_offset}'].font = openpyxl.styles.Font(name=self.font_family, bold=True)
+                    self.ws[f'A{SeviceName_cell-temp_offset}'].alignment = openpyxl.styles.Alignment(horizontal='right')
+                    self.ws[f'A{CVE_cell-temp_offset}'].alignment = openpyxl.styles.Alignment(horizontal='right')
+                    self.ws[f'A{Exploitability_cell-temp_offset}'].alignment = openpyxl.styles.Alignment(horizontal='right')
+                    self.ws[f'A{Impact_cell-temp_offset}'].alignment = openpyxl.styles.Alignment(horizontal='right')
+                    self.ws[f'A{Version_cell-temp_offset}'].alignment = openpyxl.styles.Alignment(horizontal='right')
+                    self.ws[f'A{Severity_cell-temp_offset}'].alignment = openpyxl.styles.Alignment(horizontal='right')
+                    self.ws[f'A{StartingV_cell-temp_offset}'].alignment = openpyxl.styles.Alignment(horizontal='right')
+                    self.ws[f'A{EndingV_cell-temp_offset}'].alignment = openpyxl.styles.Alignment(horizontal='right')
+                    self.ws[f'C{CVE_cell-temp_offset}'].alignment = openpyxl.styles.Alignment(horizontal='left')
+                    self.ws[f'C{Exploitability_cell-temp_offset}'].alignment = openpyxl.styles.Alignment(horizontal='left')
+                    self.ws[f'C{Impact_cell-temp_offset}'].alignment = openpyxl.styles.Alignment(horizontal='left')
+                    self.ws[f'C{Version_cell-temp_offset}'].alignment = openpyxl.styles.Alignment(horizontal='left')
+                    self.ws[f'C{Severity_cell-temp_offset}'].alignment = openpyxl.styles.Alignment(horizontal='left')
 
-            self.ws[f'B{SeviceName_cell}'].font = openpyxl.styles.Font(name=self.font_family, bold=True)
-            self.ws[f'B{VulnLabel_cell}'].font = openpyxl.styles.Font(name=self.font_family)
-            self.ws[f'B{CVE_cell}'].font = openpyxl.styles.Font(name=self.font_family)
-            self.ws[f'B{Exploitability_cell}'].font = openpyxl.styles.Font(name=self.font_family)
-            self.ws[f'B{Impact_cell}'].font = openpyxl.styles.Font(name=self.font_family)
-            self.ws[f'B{Version_cell}'].font = openpyxl.styles.Font(name=self.font_family)
-            self.ws[f'B{Severity_cell}'].font = openpyxl.styles.Font(name=self.font_family)
+                    temp_offset -=offset
 
-            self.ws[f'C{VulnLabel_cell}'].font = openpyxl.styles.Font(name=self.font_family)
-            self.ws[f'C{CVE_cell}'].font = openpyxl.styles.Font(name=self.font_family)
-            self.ws[f'C{Exploitability_cell}'].font = openpyxl.styles.Font(name=self.font_family)
-            self.ws[f'C{Impact_cell}'].font = openpyxl.styles.Font(name=self.font_family)
-            self.ws[f'C{Version_cell}'].font = openpyxl.styles.Font(name=self.font_family)
-            self.ws[f'C{Severity_cell}'].font = openpyxl.styles.Font(name=self.font_family)
+                    
+            elif service_name in active_service_vulnerabilities:
+                self.ws[f'A{NameLabel_cell}'] = 'Service Name'
+                self.ws[f'B{VulnLabel_cell}'] = 'Active Vulnerabilities'
+                self.ws[f'C{VulnLabel_cell}'] = 'Possible Vulnerabilities'
+                self.ws.merge_cells(f"B{NameLabel_cell}:C{NameLabel_cell}")
+                self.ws[f'B{SeviceName_cell}'].value = service_name
+                self.ws[f'A{SeviceName_cell}'].font = openpyxl.styles.Font(name=self.font_family, bold=True)
+                self.ws[f'B{SeviceName_cell}'].alignment = openpyxl.styles.Alignment(horizontal='center')
+                self.ws[f'A{NameLabel_cell}'].alignment = openpyxl.styles.Alignment(horizontal='center')
+                self.ws[f'B{VulnLabel_cell}'].alignment = openpyxl.styles.Alignment(horizontal='center')
+                self.ws[f'C{VulnLabel_cell}'].alignment = openpyxl.styles.Alignment(horizontal='center')
 
-            # Allign cells
-            self.ws[f'B{SeviceName_cell}'].alignment = openpyxl.styles.Alignment(horizontal='center')
-            self.ws[f'A{NameLabel_cell}'].alignment = openpyxl.styles.Alignment(horizontal='center')
-            self.ws[f'B{VulnLabel_cell}'].alignment = openpyxl.styles.Alignment(horizontal='center')
-            self.ws[f'C{VulnLabel_cell}'].alignment = openpyxl.styles.Alignment(horizontal='center')
+                for index in range(len(active_service_vulnerabilities[service_name])):
 
-            self.ws[f'A{SeviceName_cell}'].alignment = openpyxl.styles.Alignment(horizontal='right')
-            self.ws[f'A{CVE_cell}'].alignment = openpyxl.styles.Alignment(horizontal='right')
-            self.ws[f'A{Exploitability_cell}'].alignment = openpyxl.styles.Alignment(horizontal='right')
-            self.ws[f'A{Impact_cell}'].alignment = openpyxl.styles.Alignment(horizontal='right')
-            self.ws[f'A{Version_cell}'].alignment = openpyxl.styles.Alignment(horizontal='right')
-            self.ws[f'A{Severity_cell}'].alignment = openpyxl.styles.Alignment(horizontal='right')
+                    self.ws[f'B{CVE_cell}'] = active_service_vulnerabilities[service_name][index]["CVE"]
+                    self.ws[f'B{Exploitability_cell}'] = active_service_vulnerabilities[service_name][index]["Exploitability Score"]
+                    self.ws[f'B{Impact_cell}'] = active_service_vulnerabilities[service_name][index]["Impact Score"]
+                    self.ws[f'B{Version_cell}'] = active_service_vulnerabilities[service_name][index]["Service Version"]
+                    self.ws[f'B{Severity_cell}'] = active_service_vulnerabilities[service_name][index]["Severity"]
+                    self.ws[f'B{StartingV_cell}'] = active_service_vulnerabilities[service_name][index]["Starting Version"]
+                    self.ws[f'B{EndingV_cell}'] = active_service_vulnerabilities[service_name][index]["Ending Version"]
 
-            self.ws[f'C{CVE_cell}'].alignment = openpyxl.styles.Alignment(horizontal='left')
-            self.ws[f'C{Exploitability_cell}'].alignment = openpyxl.styles.Alignment(horizontal='left')
-            self.ws[f'C{Impact_cell}'].alignment = openpyxl.styles.Alignment(horizontal='left')
-            self.ws[f'C{Version_cell}'].alignment = openpyxl.styles.Alignment(horizontal='left')
-            self.ws[f'C{Severity_cell}'].alignment = openpyxl.styles.Alignment(horizontal='left')
+                    if active_service_vulnerabilities[service_name][index]["Severity"] == "HIGH":
+                        self.ws[f'B{Severity_cell}'].fill = openpyxl.styles.PatternFill("solid", fgColor="d11818")
+                    elif active_service_vulnerabilities[service_name][index]["Severity"] == "MEDIUM":
+                        self.ws[f'B{Severity_cell}'].fill = openpyxl.styles.PatternFill("solid", fgColor="FFC300")
+                    elif active_service_vulnerabilities[service_name][index]["Severity"] == "LOW":
+                        self.ws[f'B{Severity_cell}'].fill = openpyxl.styles.PatternFill("solid", fgColor="ecec0a")
 
-            NameLabel_cell += offset
-            VulnLabel_cell += offset
-            SeviceName_cell += offset
-            CVE_cell += offset
-            Exploitability_cell += offset
-            Impact_cell += offset
-            Version_cell += offset
-            Severity_cell += offset
-            i += 1
+                    self.ws[f'B{SeviceName_cell}'].font = openpyxl.styles.Font(name=self.font_family, bold=True)
+                    self.ws[f'B{VulnLabel_cell}'].font = openpyxl.styles.Font(name=self.font_family)
+                    self.ws[f'B{CVE_cell}'].font = openpyxl.styles.Font(name=self.font_family)
+                    self.ws[f'B{Exploitability_cell}'].font = openpyxl.styles.Font(name=self.font_family)
+                    self.ws[f'B{Impact_cell}'].font = openpyxl.styles.Font(name=self.font_family)
+                    self.ws[f'B{Version_cell}'].font = openpyxl.styles.Font(name=self.font_family)
+                    self.ws[f'B{Severity_cell}'].font = openpyxl.styles.Font(name=self.font_family)
+                    self.ws[f'B{StartingV_cell}'].font = openpyxl.styles.Font(name=self.font_family)
+                    self.ws[f'B{EndingV_cell}'].font = openpyxl.styles.Font(name=self.font_family)
+                    self.ws[f'A{CVE_cell}'] = "CVE"
+                    self.ws[f'A{Exploitability_cell}'] = "Exploitability Score"
+                    self.ws[f'A{Impact_cell}'] = "Impact Score"
+                    self.ws[f'A{Version_cell}'] = "Service Version"
+                    self.ws[f'A{Severity_cell}'] = "Severity"
+                    self.ws[f'A{StartingV_cell}'] = "Starting version"
+                    self.ws[f'A{EndingV_cell}'] = "Ending Version"
+                    self.ws[f'A{CVE_cell}'].font = openpyxl.styles.Font(name=self.font_family, bold=True)
+                    self.ws[f'A{Exploitability_cell}'].font = openpyxl.styles.Font(name=self.font_family, bold=True)
+                    self.ws[f'A{Impact_cell}'].font = openpyxl.styles.Font(name=self.font_family, bold=True)
+                    self.ws[f'A{Version_cell}'].font = openpyxl.styles.Font(name=self.font_family, bold=True)
+                    self.ws[f'A{Severity_cell}'].font = openpyxl.styles.Font(name=self.font_family, bold=True)
+                    self.ws[f'A{StartingV_cell}'].font = openpyxl.styles.Font(name=self.font_family, bold=True)
+                    self.ws[f'A{EndingV_cell}'].font = openpyxl.styles.Font(name=self.font_family, bold=True)
+                    self.ws[f'A{SeviceName_cell}'].alignment = openpyxl.styles.Alignment(horizontal='right')
+                    self.ws[f'A{CVE_cell}'].alignment = openpyxl.styles.Alignment(horizontal='right')
+                    self.ws[f'A{Exploitability_cell}'].alignment = openpyxl.styles.Alignment(horizontal='right')
+                    self.ws[f'A{Impact_cell}'].alignment = openpyxl.styles.Alignment(horizontal='right')
+                    self.ws[f'A{Version_cell}'].alignment = openpyxl.styles.Alignment(horizontal='right')
+                    self.ws[f'A{Severity_cell}'].alignment = openpyxl.styles.Alignment(horizontal='right')
+                    self.ws[f'A{StartingV_cell}'].alignment = openpyxl.styles.Alignment(horizontal='right')
+                    self.ws[f'A{EndingV_cell}'].alignment = openpyxl.styles.Alignment(horizontal='right')
+                    self.ws[f'B{CVE_cell}'].alignment = openpyxl.styles.Alignment(horizontal='left')
+                    self.ws[f'B{Exploitability_cell}'].alignment = openpyxl.styles.Alignment(horizontal='left')
+                    self.ws[f'B{Impact_cell}'].alignment = openpyxl.styles.Alignment(horizontal='left')
+                    self.ws[f'B{Version_cell}'].alignment = openpyxl.styles.Alignment(horizontal='left')
+                    self.ws[f'B{Severity_cell}'].alignment = openpyxl.styles.Alignment(horizontal='left')
+
+                    NameLabel_cell += offset
+                    VulnLabel_cell += offset
+                    SeviceName_cell += offset
+                    CVE_cell += offset
+                    Exploitability_cell += offset
+                    Impact_cell += offset
+                    Version_cell += offset
+                    Severity_cell += offset
+                    StartingV_cell += offset
+                    EndingV_cell += offset
+
+            elif service_name in possible_service_vulnerabilities:
+                self.ws[f'A{NameLabel_cell}'] = 'Service Name'
+                self.ws[f'B{VulnLabel_cell}'] = 'Active Vulnerabilities'
+                self.ws[f'C{VulnLabel_cell}'] = 'Possible Vulnerabilities'
+                self.ws.merge_cells(f"B{NameLabel_cell}:C{NameLabel_cell}")
+                self.ws[f'B{SeviceName_cell}'].value = service_name
+                self.ws[f'A{SeviceName_cell}'].font = openpyxl.styles.Font(name=self.font_family, bold=True)
+                self.ws[f'C{VulnLabel_cell}'].alignment = openpyxl.styles.Alignment(horizontal='center')
+                self.ws[f'B{SeviceName_cell}'].alignment = openpyxl.styles.Alignment(horizontal='center')
+                self.ws[f'A{NameLabel_cell}'].alignment = openpyxl.styles.Alignment(horizontal='center')
+                self.ws[f'B{VulnLabel_cell}'].alignment = openpyxl.styles.Alignment(horizontal='center')
+                
+                for index in range(len(possible_service_vulnerabilities[service_name])):
+                    self.ws[f'C{CVE_cell}'] = possible_service_vulnerabilities[service_name][index]["CVE"]
+                    self.ws[f'C{Exploitability_cell}'] = possible_service_vulnerabilities[service_name][index]["Exploitability Score"]
+                    self.ws[f'C{Impact_cell}'] = possible_service_vulnerabilities[service_name][index]["Impact Score"]
+                    self.ws[f'C{Version_cell}'] = possible_service_vulnerabilities[service_name][index]["Service Version"]
+                    self.ws[f'C{Severity_cell}'] = possible_service_vulnerabilities[service_name][index]["Severity"]
+                    self.ws[f'C{StartingV_cell}'] = possible_service_vulnerabilities[service_name][index]["Starting Version"]
+                    self.ws[f'C{EndingV_cell}'] = possible_service_vulnerabilities[service_name][index]["Ending Version"]
+                    self.ws[f'A{SeviceName_cell}'].alignment = openpyxl.styles.Alignment(horizontal='right')
+
+                    if possible_service_vulnerabilities[service_name][index]["Severity"] == "HIGH":
+                        self.ws[f'C{Severity_cell}'].fill = openpyxl.styles.PatternFill("solid", fgColor="d11818")
+                    elif possible_service_vulnerabilities[service_name][index]["Severity"] == "MEDIUM":
+                        self.ws[f'C{Severity_cell}'].fill = openpyxl.styles.PatternFill("solid", fgColor="FFC300")
+                    elif possible_service_vulnerabilities[service_name][index]["Severity"] == "LOW":
+                        self.ws[f'C{Severity_cell}'].fill = openpyxl.styles.PatternFill("solid", fgColor="ecec0a")
+                    
+                    self.ws[f'A{CVE_cell}'] = "CVE"
+                    self.ws[f'A{Exploitability_cell}'] = "Exploitability Score"
+                    self.ws[f'A{Impact_cell}'] = "Impact Score"
+                    self.ws[f'A{Version_cell}'] = "Service Version"
+                    self.ws[f'A{Severity_cell}'] = "Severity"
+                    self.ws[f'A{StartingV_cell}'] = "Starting version"
+                    self.ws[f'A{EndingV_cell}'] = "Ending Version"
+                    self.ws[f'A{CVE_cell}'].font = openpyxl.styles.Font(name=self.font_family, bold=True)
+                    self.ws[f'A{Exploitability_cell}'].font = openpyxl.styles.Font(name=self.font_family, bold=True)
+                    self.ws[f'A{Impact_cell}'].font = openpyxl.styles.Font(name=self.font_family, bold=True)
+                    self.ws[f'A{Version_cell}'].font = openpyxl.styles.Font(name=self.font_family, bold=True)
+                    self.ws[f'A{Severity_cell}'].font = openpyxl.styles.Font(name=self.font_family, bold=True)
+                    self.ws[f'A{StartingV_cell}'].font = openpyxl.styles.Font(name=self.font_family, bold=True)
+                    self.ws[f'A{EndingV_cell}'].font = openpyxl.styles.Font(name=self.font_family, bold=True)
+                    self.ws[f'A{SeviceName_cell}'].alignment = openpyxl.styles.Alignment(horizontal='right')
+                    self.ws[f'A{CVE_cell}'].alignment = openpyxl.styles.Alignment(horizontal='right')
+                    self.ws[f'A{Exploitability_cell}'].alignment = openpyxl.styles.Alignment(horizontal='right')
+                    self.ws[f'A{Impact_cell}'].alignment = openpyxl.styles.Alignment(horizontal='right')
+                    self.ws[f'A{Version_cell}'].alignment = openpyxl.styles.Alignment(horizontal='right')
+                    self.ws[f'A{Severity_cell}'].alignment = openpyxl.styles.Alignment(horizontal='right')
+                    self.ws[f'A{StartingV_cell}'].alignment = openpyxl.styles.Alignment(horizontal='right')
+                    self.ws[f'A{EndingV_cell}'].alignment = openpyxl.styles.Alignment(horizontal='right')
+                    self.ws[f'C{VulnLabel_cell}'].font = openpyxl.styles.Font(name=self.font_family)
+                    self.ws[f'C{CVE_cell}'].font = openpyxl.styles.Font(name=self.font_family)
+                    self.ws[f'C{Exploitability_cell}'].font = openpyxl.styles.Font(name=self.font_family)
+                    self.ws[f'C{Impact_cell}'].font = openpyxl.styles.Font(name=self.font_family)
+                    self.ws[f'C{Version_cell}'].font = openpyxl.styles.Font(name=self.font_family)
+                    self.ws[f'C{Severity_cell}'].font = openpyxl.styles.Font(name=self.font_family)
+                    self.ws[f'C{StartingV_cell}'].font = openpyxl.styles.Font(name=self.font_family)
+                    self.ws[f'C{EndingV_cell}'].font = openpyxl.styles.Font(name=self.font_family)
+                    self.ws[f'C{CVE_cell}'].alignment = openpyxl.styles.Alignment(horizontal='left')
+                    self.ws[f'C{Exploitability_cell}'].alignment = openpyxl.styles.Alignment(horizontal='left')
+                    self.ws[f'C{Impact_cell}'].alignment = openpyxl.styles.Alignment(horizontal='left')
+                    self.ws[f'C{Version_cell}'].alignment = openpyxl.styles.Alignment(horizontal='left')
+                    self.ws[f'C{Severity_cell}'].alignment = openpyxl.styles.Alignment(horizontal='left')
+                
+                    NameLabel_cell += offset
+                    VulnLabel_cell += offset
+                    SeviceName_cell += offset
+                    CVE_cell += offset
+                    Exploitability_cell += offset
+                    Impact_cell += offset
+                    Version_cell += offset
+                    Severity_cell += offset
+                    StartingV_cell += offset
+                    EndingV_cell += offset
 
         # Save the workbook
         self.wb.save(self.xlsx_file)
@@ -190,8 +357,11 @@ class Reporter():
         self.ws[f'I{recom_cell-1}'].font = openpyxl.styles.Font(name=self.font_family, bold=True)
         for service in configurations:
             if configurations[service]:
+                serviceName_cell = recom_cell-3
+                confFile_cell = recom_cell-2
                 self.ws[f'I{confFile_cell-1}'] = service
                 self.ws[f'H{confFile_cell-1}'] = "Service"
+                self.ws[f'H{confFile_cell-1}'].alignment = openpyxl.styles.Alignment(horizontal='right')
                 self.ws[f'I{confFile_cell-1}'].font = openpyxl.styles.Font(name=self.font_family, bold=True)
                 self.ws[f'H{confFile_cell-1}'].font = openpyxl.styles.Font(name=self.font_family, bold=True)
                 if service in ["Apache", "PostgreSQL", "Filezilla"]:
@@ -214,7 +384,7 @@ class Reporter():
                                     recom_cell += 1
                             recom_cell += 2
                             confFile_cell = recom_cell-2
-                else:
+                elif service == "Registry":
                     for reg_key in configurations[service]:
                         if configurations[service][reg_key]:
                             index = 0
@@ -240,11 +410,34 @@ class Reporter():
                         recom_cell += 3
                         confFile_cell = recom_cell-2
                             
-            
+                elif service == "Nftables":
+                    self.ws[f'I{recom_cell-3}'] = "Nftables"
+                    self.ws[f'I{recom_cell-2}'] = "Needs review"
+                    self.ws[f'H{recom_cell-2}'] = ""
+                    self.ws[f'I{recom_cell-2}'].font = openpyxl.styles.Font(name=self.font_family, bold=True)
+                    self.ws[f'I{recom_cell-3}'].font = openpyxl.styles.Font(name=self.font_family, bold=True)
+                    self.ws[f'I{recom_cell-2}'].alignment = openpyxl.styles.Alignment(horizontal='center')
+
+                    if configurations[service][0]:
+                        if configurations[service][1]:
+                            for rule in configurations[service][1]:
+                                self.ws[f'I{recom_cell-1}'] = rule
+                                recom_cell += 1
+                    else:
+                        self.ws[f'I{recom_cell-3}'] = "Nftables are inactive"
+                        self.ws[f'I{recom_cell-3}'].font = openpyxl.styles.Font(name=self.font_family, bold=True)
+                        self.ws[f'I{recom_cell-3}'].fill = openpyxl.styles.PatternFill("solid", fgColor="d11818")
+                        self.ws[f'I{recom_cell}'] = "Start the nftables service"
+                recom_cell += 2
         self.wb.save(self.xlsx_file)
 
-    def xlsx_to_pdf(self, pdf_file):
-        workbook = ac.Workbook(self.xlsx_file)
-        pdfOptions = ac.PdfSaveOptions()
-        pdfOptions.all_columns_in_one_page_per_sheet = True
-        workbook.save(pdf_file, pdfOptions)
+    def xlsx_to_pdf(self, pdf_file, os):
+        if os == "windows":
+            import aspose.cells as ac
+            workbook = ac.Workbook(self.xlsx_file)
+            pdfOptions = ac.PdfSaveOptions()
+            pdfOptions.all_columns_in_one_page_per_sheet = True
+            workbook.save(pdf_file, pdfOptions)
+            print(f"Report files {self.xlsx_file} and {pdf_file} have been created")
+        else:
+            print(f"Report files {self.xlsx_file} have been created")

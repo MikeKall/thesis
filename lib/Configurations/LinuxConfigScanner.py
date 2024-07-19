@@ -133,7 +133,6 @@ class LinuxConfigs():
                 else:
                     return is_active, "No rule detected"
             else:
-                is_active = "Nftables is not activated"
                 bad_rules = "No rules detected"
             
 
@@ -147,8 +146,10 @@ class LinuxConfigs():
         bad_rules = []
         lines = rules.split('\n')
         for line in lines:
-            if 'accept' in line and 'ip saddr 0.0.0.0/0' in line and 'ip daddr   0.0.0.0/0' in line:
-                bad_rules.append(line)
+            if 'accept' in line and 'ip saddr 0.0.0.0/0' in line and 'ip daddr 0.0.0.0/0' in line:
+                bad_rules.append(line.strip())
+            elif 'accept' in line and 'ip saddr 0.0.0.0/0' in line:
+                bad_rules.append(line.strip())
         
         return bad_rules
 
