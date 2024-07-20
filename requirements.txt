@@ -3,3 +3,4 @@ openpyxl
 pam
 packaging
 aspose-cells
+requests
