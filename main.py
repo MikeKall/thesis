@@ -33,6 +33,7 @@ serviceController_obj = ServiceScanController.ServiceScanController(distro)
 
 active_vulnerabilities = {}
 possible_vulnerabilities = {}
+versions = {}
 local_users = []
 critical_users = {}
 vulnerable_users = {}

@@ -190,7 +190,9 @@ class Reporter():
                     self.ws[f'B{StartingV_cell}'] = active_service_vulnerabilities[service_name][index]["Starting Version"]
                     self.ws[f'B{EndingV_cell}'] = active_service_vulnerabilities[service_name][index]["Ending Version"]
 
-                    if active_service_vulnerabilities[service_name][index]["Severity"] == "HIGH":
+                    if possible_service_vulnerabilities[service_name][index]["Severity"] == "CRITICAL":
+                        self.ws[f'C{Severity_cell}'].fill = openpyxl.styles.PatternFill("solid", fgColor="830462")
+                    elif possible_service_vulnerabilities[service_name][index]["Severity"] == "HIGH":
                         self.ws[f'B{Severity_cell}'].fill = openpyxl.styles.PatternFill("solid", fgColor="d11818")
                     elif active_service_vulnerabilities[service_name][index]["Severity"] == "MEDIUM":
                         self.ws[f'B{Severity_cell}'].fill = openpyxl.styles.PatternFill("solid", fgColor="FFC300")
@@ -267,7 +269,10 @@ class Reporter():
                     self.ws[f'C{EndingV_cell}'] = possible_service_vulnerabilities[service_name][index]["Ending Version"]
                     self.ws[f'A{SeviceName_cell}'].alignment = openpyxl.styles.Alignment(horizontal='right')
 
-                    if possible_service_vulnerabilities[service_name][index]["Severity"] == "HIGH":
+
+                    if possible_service_vulnerabilities[service_name][index]["Severity"] == "CRITICAL":
+                        self.ws[f'C{Severity_cell}'].fill = openpyxl.styles.PatternFill("solid", fgColor="830462")
+                    elif possible_service_vulnerabilities[service_name][index]["Severity"] == "HIGH":
                         self.ws[f'C{Severity_cell}'].fill = openpyxl.styles.PatternFill("solid", fgColor="d11818")
                     elif possible_service_vulnerabilities[service_name][index]["Severity"] == "MEDIUM":
                         self.ws[f'C{Severity_cell}'].fill = openpyxl.styles.PatternFill("solid", fgColor="FFC300")

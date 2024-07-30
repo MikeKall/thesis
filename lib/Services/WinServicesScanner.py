@@ -39,7 +39,7 @@ class WinServicesScanner:
                 services_paths[service] = "Unknown"
 
         # Parse the full path of the exe and get the version
-        pattern = "(C:.*?exe)"
+        pattern = r"(C:.*?exe)"
         for service in services_paths:
             services_paths[service] = services_paths[service].replace("\\", "\\\\")
             match = re.search(pattern, services_paths[service])
