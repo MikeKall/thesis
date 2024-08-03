@@ -11,7 +11,6 @@ from packaging.version import Version
 class CVEUpdater():
     def __init__(self, versions):
         self.versions = versions
-        self.versions["TeamViewer"] = "14.2.2558"
     
     def GetVulnerabilities(self):
         cached_cves_f = [pos_json for pos_json in os.listdir('.') if pos_json.startswith('CachedCVEs')]
